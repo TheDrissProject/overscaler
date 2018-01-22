@@ -1,0 +1,21 @@
+{
+  "cpu_request":"cpu/request",
+  "memory_request":"memory/request",
+  "uptime":"uptime",
+  "network_tx_errors_rate":"network/tx_errors_rate",
+  "network_tx_rate":"network/tx_rate",
+  "memory_major_page_faults_rate":"memory/major_page_faults_rate",
+  "memory_working_set":"memory/working_set",
+  "network_rx_rate":"network/rx_rate",
+  "memory_page_faults_rate":"memory/page_faults_rate",
+  "network_tx":"network/tx",
+  "network_rx_errors":"network/rx_errors",
+  "network_rx_rate":"network/rx_rate",
+  "cpu_usage_rate":"cpu/usage_rate",
+  "memory_limit":"memory/limit",
+  "memory_usage":"memory/usage",
+  "network_tx_errors":"network/tx_errors",
+  "network_rx":"network/rx",
+  "memory_rss":"memory/rss",
+  "cpu_limit":"cpu/limit"
+}
