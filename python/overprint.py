@@ -30,7 +30,7 @@ def print_info_cluster(autoscale, max_nodes,min_nodes,overscaler,metrics,rules,c
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO] Rules")
             for i in range(len(rules)):
                 print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO RULES] Rule " + str(i + 1) + ": " + str(
-                    rules[i]).replace("-", " "))
+                    rules[i]).replace("_", " "))
 
 def print_node_status(df_node_status):
 

@@ -5,47 +5,58 @@ import overtools as ot
 import overprint as op
 import datetime
 
+
+
 standard_node_metrics = json.load(open('./node_metrics.json'))
 standard_pod_metrics = json.load(open('./pod_metrics.json'))
 
-ot.cluster_auth()
-ot.start_proxy()
+def main():
 
-autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels()
+    ot.cluster_auth()
+    ot.start_proxy()
 
-api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
+    autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels()
 
-statefulset_labels=ot.get_statefulset_labels(api,"default")
+    api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
 
-current_nodes=ot.get_num_nodes()
 
-op.print_info_cluster(autoscale, max_nodes,min_nodes,overscaler,metrics,rules,current_nodes)
+    statefulset_labels=ot.get_statefulset_labels(api,"default")
 
-t_nodes=datetime.datetime.now()
-t_statefulset=datetime.datetime.now()
-while(True):
+    current_nodes=ot.get_num_nodes()
 
-    t1=datetime.datetime.now()
-    if (t1-t_nodes).seconds>600:
-        autoscale, max_nodes, min_nodes, overscaler, metrics, rules = ot.get_cluster_labels()
-        current_nodes = ot.get_num_nodes()
-        op.print_info_cluster(autoscale, max_nodes, min_nodes, overscaler, metrics, rules, current_nodes)
-        t_nodes = datetime.datetime.now()
+    op.print_info_cluster(autoscale, max_nodes,min_nodes,overscaler,metrics,rules,current_nodes)
 
-    t2=datetime.datetime.now()
-    if (t2-t_statefulset).seconds>300:
-        statefulset_labels = ot.get_statefulset_labels(api, "default")
-        t_statefulset = datetime.datetime.now()
+    t_nodes=datetime.datetime.now()
+    t_statefulset=datetime.datetime.now()
+    while(True):
 
-    df_node_status = ot.get_nodes_status(metrics,standard_node_metrics)
-    op.print_node_status(df_node_status)
+        t1=datetime.datetime.now()
+        if (t1-t_nodes).seconds>600:
+            api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
+            autoscale, max_nodes, min_nodes, overscaler, metrics, rules = ot.get_cluster_labels()
+            current_nodes = ot.get_num_nodes()
+            op.print_info_cluster(autoscale, max_nodes, min_nodes, overscaler, metrics, rules, current_nodes)
+            t_nodes = datetime.datetime.now()
 
-    for i in range(len(df_node_status['name'])):
-        node_status=df_node_status.loc[i,'status']
-        ot.node_actions(node_status, rules,df_node_status.loc[i,'name'])
-    for i in range(len(df_node_status['name'])):
-        df_pods_status=ot.get_pods_status(df_node_status.loc[i,'name'],df_node_status.loc[i,'memory_allocatable'],df_node_status.loc[i,'cpu_allocatable'],statefulset_labels,standard_pod_metrics)
-        if df_pods_status.empty:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [WARNING] Node "+str(df_node_status['name'][i])+" without pods to monitor")
-        else:
-            op.print_pods_status(df_pods_status)
+        t2=datetime.datetime.now()
+        if (t2-t_statefulset).seconds>300:
+            statefulset_labels = ot.get_statefulset_labels(api, "default")
+            t_statefulset = datetime.datetime.now()
+
+        df_node_status = ot.get_nodes_status(metrics,standard_node_metrics)
+        op.print_node_status(df_node_status)
+
+        for i in range(len(df_node_status['name'])):
+            ot.node_actions(df_node_status.loc[i,'status'], rules,df_node_status.loc[i,'name'],"NODE")
+        for i in range(len(df_node_status['name'])):
+            df_pod_status=ot.get_pods_status(df_node_status.loc[i,'name'],df_node_status.loc[i,'memory_allocatable'],df_node_status.loc[i,'cpu_allocatable'],statefulset_labels,standard_pod_metrics)
+            if df_pod_status.empty:
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [WARNING] Node "+str(df_node_status['name'][i])+" without pods to monitor")
+            else:
+                df_pod_status=df_pod_status.reset_index()
+                op.print_pods_status(df_pod_status)
+                for j in range(len(df_pod_status['pod'])):
+                    ot.node_actions(df_pod_status.loc[j, 'status'], rules, df_pod_status.loc[j, 'pod'],"POD")
+
+if __name__ == '__main__':
+    main()
