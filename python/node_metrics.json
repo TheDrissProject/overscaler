@@ -28,5 +28,7 @@
   "memory_request":"memory/request",
   "memory_usage":"memory/usage",
   "memory_major_page_faults_rate":"memory/major_page_faults_rate",
-  "cpu_limit":"cpu/limit"
+  "cpu_limit":"cpu/limit",
+  "memory_usage_percent":"memory_usage_percent",
+  "cpu_usage_percent":"cpu_usage_percent"
 }

@@ -9,43 +9,14 @@ import pykube
 from time import gmtime, strftime
 import re
 
+standard_node_metrics = json.load(open('./node_metrics.json'))
+standard_pod_metrics = json.load(open('./pod_metrics.json'))
+
 def replace_all(text, dic):
     for i, j in dic.items():
         text = text.replace(i, j)
     return text
 
-def get_cluster_labels():
-
-    max_nodes = 0
-    min_nodes= 0
-
-    bash_describe = "gcloud container clusters describe --format=json cluster-gleam --zone europe-west2-a"
-
-    output = str(subprocess.check_output(bash_describe, shell=True))
-    output = json.loads(output.replace("\\n", "").replace("b\'", "").replace("\'", ""))
-
-    autoscale = output["nodePools"][0]["autoscaling"]["enabled"]
-    metrics = []
-    rules=[]
-    if len(list(filter(re.compile("metric_.*").search, list(output["resourceLabels"].keys())))) > 0:
-        for i in list(filter(re.compile("metric_.*").search, list(output["resourceLabels"].keys()))):
-            metric = output["resourceLabels"][i]
-            metrics.append(metric)
-    overscaler = output["resourceLabels"]["overscaler"]
-    if overscaler == "true":
-        if len(list(filter(re.compile("rule_.*").search, list(output["resourceLabels"].keys())))) > 0:
-            for i in list(filter(re.compile("rule_.*").search, list(output["resourceLabels"].keys()))):
-                rule = output["resourceLabels"][i]
-                rules.append(rule)
-
-    if str(autoscale) == "True":
-        max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
-        min_nodes = output["nodePools"][0]["autoscaling"]["minNodeCount"]
-
-    return autoscale, max_nodes,min_nodes, overscaler, metrics, rules
-
-def get_num_nodes():
-    return len(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json())
 
 def cluster_auth():
     bash_auth = "gcloud container clusters get-credentials cluster-gleam --zone europe-west2-a --project gleam-ai1"
@@ -56,6 +27,81 @@ def start_proxy():
     subprocess.call(['bash', '-c', bash_proxy])
 
     time.sleep(5)
+
+def check_rule(rule):
+    rule=rule.split("-")
+    if len(rule)==4 and rule[0] in list(standard_pod_metrics.keys())\
+        and (rule[1]=="greater" or rule[1]=="lower") and rule[2].isdigit()\
+        and (rule[3]=="scale" or rule[3]=="reduce" or\
+        len(list(filter(re.compile("and_.*").search, list(rule[3])))) > 0):
+        check="right_rule"
+    else:
+        check="wrong_rule"
+    return check
+
+def node_actions(node_status, rules,node_name):
+    if len(rules) > 0:
+        for j in range(len(rules)):
+            if str(rules[j]).split("-")[1] == "greater":
+                if float(node_status[str(rules[j]).split("-")[0]]) > float(str(rules[j]).split("-")[2]):
+                    if str(rules[j]).split("-")[3] == "scale":
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE NODE: " + str(node_name) + " for rule: " + str(rules[j]).replace("-", " "))
+                    if str(rules[j]).split("-")[3] == "reduce":
+                        print(strftime("%Y-%m-%d %H:%M:%S",
+                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE NODE: " + str(node_name)+ " for rule: " + str(rules[j]).replace("-", " "))
+            if str(rules[j]).split("-")[1] == "lower":
+                if float(node_status[str(rules[j]).split("-")[0]]) < float(str(rules[j]).split("-")[2]):
+                    if str(rules[j]).split("-")[3] == "scale":
+                        print(strftime("%Y-%m-%d %H:%M:%S",
+                                       gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE NODE: " + str(node_name)+ " for rule: " + str(rules[j]).replace("-", " "))
+                    if str(rules[j]).split("-")[3] == "reduce":
+                        print(strftime("%Y-%m-%d %H:%M:%S",
+                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE NODE: " + str(node_name)+ " for rule: " + str(rules[j]).replace("-", " "))
+
+
+def get_cluster_labels():
+
+    max_nodes = 0
+    min_nodes= 0
+
+    bash_describe = "gcloud container clusters describe --format=json cluster-gleam --zone europe-west2-a --project gleam-ai1"
+
+    output = str(subprocess.check_output(bash_describe, shell=True))
+    output = json.loads(output.replace("\\n", "").replace("b\'", "").replace("\'", ""))
+
+    autoscale = output["nodePools"][0]["autoscaling"]["enabled"]
+    metrics = []
+    rules=[]
+    if "all_metrics" in list(output["resourceLabels"].keys()):
+        if output["resourceLabels"]["all_metrics"].lower()=="true":
+            metrics=list(standard_node_metrics.keys())
+    elif len(list(filter(re.compile("metric_.*").search, list(output["resourceLabels"].keys())))) > 0:
+        for i in list(filter(re.compile("metric_.*").search, list(output["resourceLabels"].keys()))):
+            if output["resourceLabels"][i] in list(standard_node_metrics.keys()):
+                metric = output["resourceLabels"][i]
+                metrics.append(metric)
+            else:
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i))
+    overscaler = output["resourceLabels"]["overscaler"]
+    if overscaler == "true":
+        if len(list(filter(re.compile("rule_.*").search, list(output["resourceLabels"].keys())))) > 0:
+            for i in list(filter(re.compile("rule_.*").search, list(output["resourceLabels"].keys()))):
+                rule = output["resourceLabels"][i]
+                check=check_rule(rule)
+                if check=="right_rule":
+                    rules.append(rule)
+                else:
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
+
+    if str(autoscale) == "True":
+        max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
+        min_nodes = output["nodePools"][0]["autoscaling"]["minNodeCount"]
+
+    return autoscale, max_nodes,min_nodes, overscaler, metrics, rules
+
+def get_num_nodes():
+    return len(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json())
+
 
 def get_nodes_status(metrics,standart_metrics):
     Nodes = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json()
@@ -148,20 +194,3 @@ def get_statefulset_labels(api,namespace):
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get labels for %s" % (s["metadata"]["name"]))
     return df_labels
 
-def print_node_status(df_node_status):
-
-
-    print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [STATUS_INFO] Node Status:")
-    for i in range(len(df_node_status)):
-        node_status=df_node_status.loc[i,'status']
-        for j in node_status.keys():
-            print(str(strftime("%Y-%m-%d %H:%M:%S", gmtime()))+" [STATUS_NODE] Node " +str(df_node_status.iloc[i,:]['name']+ " " +str(j)+" : " +str(node_status[j])))
-
-
-def print_pods_status(df_pods_status):
-
-    print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [STATUS_INFO] Pods Status:")
-    for i in range(len(df_pods_status)):
-        pod_status=df_pods_status.loc[i,'status']
-        for j in pod_status.keys():
-            print(str(strftime("%Y-%m-%d %H:%M:%S", gmtime()))+" [STATUS_POD] Node " +str(df_pods_status.iloc[i,:]['node']+ " Pod " +str(df_pods_status.iloc[i,:]['pod']+ " " +str(j)+" : " +str(pod_status[j]))))

@@ -17,5 +17,7 @@
   "network_tx_errors":"network/tx_errors",
   "network_rx":"network/rx",
   "memory_rss":"memory/rss",
-  "cpu_limit":"cpu/limit"
+  "cpu_limit":"cpu/limit",
+  "memory_usage_percent":"memory_usage_percent",
+  "cpu_usage_percent":"cpu_usage_percent"
 }
