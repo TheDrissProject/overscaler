@@ -20,8 +20,12 @@ def replace_all(text, dic):
 
 
 def cluster_auth():
-    bash_auth = "gcloud auth activate-service-account --key-file /root/credentials.json"
+    bash_auth = "gcloud auth activate-service-account --key-file ~/.config/gcloud/application_default_credentials.json"
     subprocess.check_output(['bash', '-c', bash_auth])
+    bash_credentials="gcloud container clusters get-credentials cluster-gleam --zone europe-west2-a --project gleam-ai1"
+    subprocess.check_output(['bash', '-c', bash_credentials])
+  
+
 
 def start_proxy():
     bash_proxy = "kubectl proxy &"
@@ -144,32 +148,24 @@ def get_nodes_status(metrics,standart_metrics):
 
 def get_pods_status(node_name, memory_allocatable, cpu_allocatable, statefulset_labels,standart_metrics):
     Pods = str(
-        subprocess.check_output("kubectl describe nodes "+str(node_name)+" | grep \"default \"",
-                                 shell=True)).split("b'", 1)[1].split()
-
+        subprocess.check_output("kubectl describe nodes "+str(node_name)+" | grep \"default \"",shell=True)).split("b'", 1)[1].split()
     df_pods_status = pd.DataFrame()
-    for i in range(int(len(Pods)/10)):
-        metrics= statefulset_labels.loc[statefulset_labels['name'] == str(str(Pods[i * 10 + 1]).rsplit("-",1)[0])]['metrics']
-        if not metrics.empty and len(metrics[0])!=0:
-            pod_status = {}
-            for j in metrics[0]:
-                if j == "memory-usage-percent":
-                    memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(
-                            Pods[i * 10 + 1]) + "/metrics/memory/working_set").json()
-                    pod_status[j] = round(
-                    memory_usage["metrics"][0]["value"] / memory_allocatable * 100, 2)
-                elif j == "cpu-usage-percent":
-                    cpu_usage = requests.get(
-                        "http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(
-                            Pods[i * 10 + 1]) + "/metrics/cpu/usage_rate").json()
-                    pod_status[j] = round(
-                        cpu_usage["metrics"][0]["value"] / cpu_allocatable * 100, 2)
-                elif j in standart_metrics.keys():
-                    get_metric=requests.get(
-                        "http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(
-                            Pods[i * 10 + 1]) + "/metrics/"+str(standart_metrics[j])).json()
-                    if len(get_metric["metrics"])!=0:
-                        pod_status[j] =get_metric["metrics"][0]["value"]
+    if not statefulset_labels.empty:
+        for i in range(int(len(Pods)/10)):
+            metrics= statefulset_labels.loc[statefulset_labels['name'] == str(str(Pods[i * 10 + 1]).rsplit("-",1)[0])]['metrics']
+            if not metrics.empty and len(metrics[0])!=0:
+                pod_status = {}
+                for j in metrics[0]:
+                    if j == "memory-usage-percent":
+                        memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(Pods[i * 10 + 1]) + "/metrics/memory/working_set").json()
+                        pod_status[j] = round(memory_usage["metrics"][0]["value"] / memory_allocatable * 100, 2)
+                    elif j == "cpu-usage-percent":
+                        cpu_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(Pods[i * 10 + 1]) + "/metrics/cpu/usage_rate").json()
+                        pod_status[j] = round(cpu_usage["metrics"][0]["value"] / cpu_allocatable * 100, 2)
+                    elif j in standart_metrics.keys():
+                        get_metric=requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(Pods[i * 10 + 1]) + "/metrics/"+str(standart_metrics[j])).json()
+                        if len(get_metric["metrics"])!=0:
+                            pod_status[j] =get_metric["metrics"][0]["value"]
             df_aux = pd.DataFrame({'node':str(node_name),'pod':str(Pods[i * 10 + 1]),'status':[pod_status]}, index=[i])
             df_pods_status = pd.concat([df_pods_status, df_aux])
     return df_pods_status

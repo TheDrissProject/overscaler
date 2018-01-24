@@ -18,6 +18,7 @@ def main():
     autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels()
     api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
 
+    #api = pykube.HTTPClient(pykube.KubeConfig.from_service_account())
 
     statefulset_labels=ot.get_statefulset_labels(api,"default")
 
