@@ -9,6 +9,7 @@ import pykube
 from time import gmtime, strftime
 import re
 
+
 standard_node_metrics = json.load(open('./node_metrics.json'))
 standard_pod_metrics = json.load(open('./pod_metrics.json'))
 
@@ -19,7 +20,7 @@ def replace_all(text, dic):
 
 
 def cluster_auth():
-    bash_auth = "gcloud container clusters get-credentials cluster-gleam --zone europe-west2-a --project gleam-ai1"
+    bash_auth = "gcloud auth activate-service-account --key-file /root/credentials.json"
     subprocess.check_output(['bash', '-c', bash_auth])
 
 def start_proxy():

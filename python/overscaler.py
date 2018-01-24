@@ -16,7 +16,6 @@ def main():
     ot.start_proxy()
 
     autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels()
-
     api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
 
 
