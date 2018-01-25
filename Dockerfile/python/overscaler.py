@@ -24,7 +24,8 @@ def main():
 
     current_nodes=ot.get_num_nodes()
 
-    op.print_info_cluster(autoscale, max_nodes,min_nodes,overscaler,metrics,rules,current_nodes)
+    op.print_cluster_info(autoscale, max_nodes,min_nodes,overscaler,metrics,rules,current_nodes)
+    op.print_statefulset_info(statefulset_labels)
 
     t_nodes=datetime.datetime.now()
     t_statefulset=datetime.datetime.now()
@@ -47,7 +48,7 @@ def main():
         op.print_node_status(df_node_status)
 
         for i in range(len(df_node_status['name'])):
-            ot.node_actions(df_node_status.loc[i,'status'], rules,df_node_status.loc[i,'name'],"NODE")
+            ot.actions(df_node_status.loc[i,'status'], rules,df_node_status.loc[i,'name'],"NODE")
         for i in range(len(df_node_status['name'])):
             df_pod_status=ot.get_pods_status(df_node_status.loc[i,'name'],df_node_status.loc[i,'memory_allocatable'],df_node_status.loc[i,'cpu_allocatable'],statefulset_labels,standard_pod_metrics)
             if df_pod_status.empty:
@@ -56,7 +57,11 @@ def main():
                 df_pod_status=df_pod_status.reset_index()
                 op.print_pods_status(df_pod_status)
                 for j in range(len(df_pod_status['pod'])):
-                    ot.node_actions(df_pod_status.loc[j, 'status'], rules, df_pod_status.loc[j, 'pod'],"POD")
+                    ot.actions(df_pod_status.loc[j, 'status'], statefulset_labels.loc[statefulset_labels['name'] == str(df_pod_status.loc[j,'pod'])]["rules"], df_pod_status.loc[j, 'pod'],"POD")
 
 if __name__ == '__main__':
     main()
+
+
+
+

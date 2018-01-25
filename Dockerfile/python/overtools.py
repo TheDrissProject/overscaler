@@ -35,41 +35,20 @@ def start_proxy():
 
 def check_rule(rule):
     rule=rule.split("_")
+    check = "wrong_rule"
     if len(rule)==4 and rule[0] in list(standard_pod_metrics.keys())\
         and (rule[1]=="greater" or rule[1]=="lower") and rule[2].isdigit()\
         and (rule[3]=="scale" or rule[3]=="reduce" or\
         len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
         check="right_rule"
-    else:
-        check="wrong_rule"
     return check
 
 def check_metric(metric):
     metric=metric.split("_")
+    check = "wrong_metric"
     if len(metric)==2:
         check="right_metric"
-    else:
-        check="wrong_metric"
     return check
-
-def node_actions(status, rules,name,kind):
-    if len(rules) > 0:
-        for j in range(len(rules)):
-            if str(rules[j]).split("_")[1] == "greater":
-                if float(status[str(rules[j]).split("_")[0]]) > float(str(rules[j]).split("_")[2]):
-                    if str(rules[j]).split("_")[3] == "scale":
-                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE "+str(kind)+": " + str(name) + " for rule: " + str(rules[j]).replace("_", " "))
-                    if str(rules[j]).split("_")[3] == "reduce":
-                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
-            if str(rules[j]).split("_")[1] == "lower":
-                if float(status[str(rules[j]).split("_")[0]]) < float(str(rules[j]).split("_")[2]):
-                    if str(rules[j]).split("_")[3] == "scale":
-                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                       gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
-                    if str(rules[j]).split("_")[3] == "reduce":
-                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
 
 
 def get_cluster_labels():
@@ -86,9 +65,9 @@ def get_cluster_labels():
     metrics = []
     rules=[]
     overscaler = "false"
-    if "all-metrics" in list(output["resourceLabels"].keys()):
-        if output["resourceLabels"]["all-metrics"].lower()=="true":
-            metrics=list(standard_node_metrics.keys())
+    if "all-metrics" in list(output["resourceLabels"].keys()) and \
+        output["resourceLabels"]["all-metrics"].lower()=="true":
+        metrics=list(standard_node_metrics.keys())
     elif len(list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys())))) > 0:
         for i in list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys()))):
             if output["resourceLabels"][i] in list(standard_node_metrics.keys()):
@@ -101,8 +80,11 @@ def get_cluster_labels():
             else:
                 print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i))
 
-    if "overscaler" in output["resourceLabels"].keys() and output["resourceLabels"]["overscaler"] == "true":
+    if "overscaler" in list(output["resourceLabels"].keys()) and \
+        output["resourceLabels"]["overscaler"] == "true":
+
         overscaler = output["resourceLabels"]["overscaler"]
+
         if len(list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys())))) > 0:
             for i in list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys()))):
                 rule = output["resourceLabels"][i]
@@ -111,12 +93,74 @@ def get_cluster_labels():
                     rules.append(rule)
                 else:
                     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
+    else:
+        if output["resourceLabels"]["overscaler"] == "true":
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels were incorrectly created.")
 
-    if str(autoscale) == "True":
+    if str(str(autoscale).lower()) == "true":
         max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
         min_nodes = output["nodePools"][0]["autoscaling"]["minNodeCount"]
 
     return autoscale, max_nodes,min_nodes, overscaler, metrics, rules
+
+def get_statefulset_labels(api,namespace):
+    pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace)
+    df_labels = pd.DataFrame()
+    index=0
+
+
+    for s in pre_set.response['items']:
+        metrics = []
+        rules = []
+        overscaler = "false"
+        name = s["metadata"]["name"]
+        current_count = 0
+        autoscaler_count = 0
+        max_replicas = 0
+        min_replicas = 0
+        print(name)
+        try:
+            if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
+                output["resourceLabels"]["all-metrics"].lower() == "true":
+                    metrics = list(standard_pod_metrics.keys())
+            elif len(list(filter(re.compile("metric-.*").search,
+                               list(s["metadata"]["labels"].keys())))) > 0:
+                for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
+                    metric = s["metadata"]["labels"][i]
+                    metrics.append(metric)
+        except:
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Error to get metrics for %s" % (
+            s["metadata"]["name"]))
+        try:
+            if "overscaler" and "max-nodes" and "min-nodes" and \
+                "autoscaler-count" and "current_count" in list(s["metadata"]["labels"].keys()) and  \
+                s["metadata"]["labels"]["overscaler"] == "true":
+
+                overscaler = s["metadata"]["labels"]["overscaler"]
+                current_count = s["metadata"]["labels"]["current_count"]
+                autoscaler_count = s["metadata"]["labels"]["autoscaler_count"]
+                max_replicas = s["metadata"]["labels"]["max_replicas"]
+                min_replicas = s["metadata"]["labels"]["min_replicas"]
+
+                if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
+                    for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
+                        rule = s["metadata"]["labels"][i]
+                        check = check_rule(rule)
+                        if check == "right_rule":
+                            rules.append(rule)
+                        else:
+                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " + str(rule))
+            else:
+                if s["metadata"]["labels"]["overscaler"] == "true":
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Stateful Set labels were incorrectly created.")
+            df_aux = pd.DataFrame(
+                    {'name': str(name),'overscaler':overscaler,'current_count':current_count,'autoscaler_count':autoscaler_count,'max_replicas':max_replicas,'min_replicas':min_replicas, 'metrics': [metrics],'rules':[rules]},index=[index])
+            df_labels=pd.concat([df_labels,df_aux])
+            index+=index
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[INFO POD] Stateful Set labels obtained correctly: "+str(name))
+        except:
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s" % (s["metadata"]["name"]))
+    return df_labels
 
 def get_num_nodes():
     return len(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json())
@@ -170,41 +214,24 @@ def get_pods_status(node_name, memory_allocatable, cpu_allocatable, statefulset_
             df_pods_status = pd.concat([df_pods_status, df_aux])
     return df_pods_status
 
-def get_statefulset_labels(api,namespace):
-    pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace)
-    df_labels = pd.DataFrame()
-    index=0
-    metrics = []
-    rules = []
 
-    for s in pre_set.response['items']:
-        try:
-            name = s["metadata"]["name"]
-            if len(list(filter(re.compile("metric-.*").search,
-                               list(s["metadata"]["labels"].keys())))) > 0:
-                for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
-                    metric = s["metadata"]["labels"][i]
-                    metrics.append(metric)
-            overscaler = s["metadata"]["labels"]["overscaler"]
-            if overscaler == "true":
-                current_count = s["metadata"]["labels"]["current_count"]
-                autoscaler_count = s["metadata"]["labels"]["autoscaler_count"]
-                max_replicas = s["metadata"]["labels"]["max_replicas"]
-                min_replicas = s["metadata"]["labels"]["min_replicas"]
+def actions(status, rules,name,kind):
+    if len(rules) > 0:
+        for j in range(len(rules)):
+            if str(rules[j]).split("_")[1] == "greater":
+                if float(status[str(rules[j]).split("_")[0]]) > float(str(rules[j]).split("_")[2]):
+                    if str(rules[j]).split("_")[3] == "scale":
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE "+str(kind)+": " + str(name) + " for rule: " + str(rules[j]).replace("_", " "))
+                    if str(rules[j]).split("_")[3] == "reduce":
+                        print(strftime("%Y-%m-%d %H:%M:%S",
+                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
+            if str(rules[j]).split("_")[1] == "lower":
+                if float(status[str(rules[j]).split("_")[0]]) < float(str(rules[j]).split("_")[2]):
+                    if str(rules[j]).split("_")[3] == "scale":
+                        print(strftime("%Y-%m-%d %H:%M:%S",
+                                       gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
+                    if str(rules[j]).split("_")[3] == "reduce":
+                        print(strftime("%Y-%m-%d %H:%M:%S",
+                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
 
-                if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
-                    for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
-                        rule = s["metadata"]["labels"][i]
-                        check = check_rule(rule)
-                        if check == "right_rule":
-                            rules.append(rule)
-                        else:
-                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " + str(rule))
-                df_aux = pd.DataFrame(
-                    {'name': str(name),'overscaler':overscaler,'current_count':current_count,'autoscaler_count':autoscaler_count,'max_replicas':max_replicas,'min_replicas':min_replicas, 'metrics': [metrics],'rules':[rules]},index=[index])
-                df_labels=pd.concat([df_labels,df_aux])
-                index+=index
-        except:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get labels for %s" % (s["metadata"]["name"]))
-    return df_labels
 
