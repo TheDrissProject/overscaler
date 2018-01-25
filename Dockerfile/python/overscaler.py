@@ -48,7 +48,8 @@ def main():
         op.print_node_status(df_node_status)
 
         for i in range(len(df_node_status['name'])):
-            ot.actions(df_node_status.loc[i,'status'], rules,df_node_status.loc[i,'name'],"NODE")
+            if overscaler=="true":
+                ot.actions(df_node_status.loc[i,'status'], rules,df_node_status.loc[i,'name'],"NODE")
         for i in range(len(df_node_status['name'])):
             df_pod_status=ot.get_pods_status(df_node_status.loc[i,'name'],df_node_status.loc[i,'memory_allocatable'],df_node_status.loc[i,'cpu_allocatable'],statefulset_labels,standard_pod_metrics)
             if df_pod_status.empty:
@@ -57,7 +58,8 @@ def main():
                 df_pod_status=df_pod_status.reset_index()
                 op.print_pods_status(df_pod_status)
                 for j in range(len(df_pod_status['pod'])):
-                    ot.actions(df_pod_status.loc[j, 'status'], statefulset_labels.loc[statefulset_labels['name'] == str(df_pod_status.loc[j,'pod'])]["rules"], df_pod_status.loc[j, 'pod'],"POD")
+                    if statefulset_labels.loc[statefulset_labels['name'] == str(df_pod_status.loc[j,'pod']).rsplit("-",1)[0]]["overscaler"]=="true":
+                        ot.actions(df_pod_status.loc[j, 'status'], statefulset_labels.loc[statefulset_labels['name'] == str(df_pod_status.loc[j,'pod']).rsplit("-",1)[0]]["rules"], df_pod_status.loc[j, 'pod'],"POD")
 
 if __name__ == '__main__':
     main()

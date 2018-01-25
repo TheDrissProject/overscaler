@@ -50,6 +50,14 @@ def check_metric(metric):
         check="right_metric"
     return check
 
+def get_num_nodes():
+    return len(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json())
+
+
+
+
+# GET LABELS
+
 
 def get_cluster_labels():
 
@@ -80,22 +88,21 @@ def get_cluster_labels():
             else:
                 print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i))
 
-    if "overscaler" in list(output["resourceLabels"].keys()) and \
-        output["resourceLabels"]["overscaler"] == "true":
-
-        overscaler = output["resourceLabels"]["overscaler"]
-
-        if len(list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys())))) > 0:
-            for i in list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys()))):
-                rule = output["resourceLabels"][i]
-                check=check_rule(rule)
-                if check=="right_rule":
-                    rules.append(rule)
-                else:
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
-    else:
+    if "overscaler" in list(output["resourceLabels"].keys()):
         if output["resourceLabels"]["overscaler"] == "true":
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels were incorrectly created.")
+
+            overscaler = output["resourceLabels"]["overscaler"]
+
+            if len(list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys())))) > 0:
+                for i in list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys()))):
+                    rule = output["resourceLabels"][i]
+                    check=check_rule(rule)
+                    if check=="right_rule":
+                        rules.append(rule)
+                    else:
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
+            else:
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels were incorrectly created.")
 
     if str(str(autoscale).lower()) == "true":
         max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
@@ -159,11 +166,16 @@ def get_statefulset_labels(api,namespace):
             index+=index
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[INFO POD] Stateful Set labels obtained correctly: "+str(name))
         except:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s" % (s["metadata"]["name"]))
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s. \"overscaler\" label is true?" % (s["metadata"]["name"]))
     return df_labels
 
-def get_num_nodes():
-    return len(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json())
+
+
+
+
+
+
+# GET STATUS
 
 
 def get_nodes_status(metrics,standart_metrics):
@@ -214,6 +226,15 @@ def get_pods_status(node_name, memory_allocatable, cpu_allocatable, statefulset_
             df_pods_status = pd.concat([df_pods_status, df_aux])
     return df_pods_status
 
+
+
+
+
+
+
+
+
+# ACTIONS
 
 def actions(status, rules,name,kind):
     if len(rules) > 0:
