@@ -52,9 +52,8 @@ def print_node_status(df_node_status):
 
 
 def print_pods_status(df_pods_status):
-
-    print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [STATUS_INFO] Pods Status:")
+    print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [STATUS INFO] Pods Status:")
     for i in range(len(df_pods_status)):
         pod_status=df_pods_status.loc[i,'status']
         for j in pod_status.keys():
-            print(str(strftime("%Y-%m-%d %H:%M:%S", gmtime()))+" [POD_STATUS] Node " +str(df_pods_status.iloc[i,:]['node']+ " Pod " +str(df_pods_status.iloc[i,:]['pod']+ " " +str(j)+" : " +str(pod_status[j]))))
+            print(str(strftime("%Y-%m-%d %H:%M:%S", gmtime()))+" [POD STATUS] Node " +str(df_pods_status.iloc[i,:]['node']+ " Pod " +str(df_pods_status.iloc[i,:]['pod']+ " " +str(j)+" : " +str(pod_status[j]))))

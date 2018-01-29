@@ -8,10 +8,32 @@ import operator
 import pykube
 from time import gmtime, strftime
 import re
+import argparse
+
 
 
 standard_node_metrics = json.load(open('/overscaler/python/node_metrics.json'))
 standard_pod_metrics = json.load(open('/overscaler/python/pod_metrics.json'))
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--namespace", help="Cluster namespace")
+    parser.add_argument("--project", help="Project name")
+    parser.add_argument("--zone", help="Zone name")
+    parser.add_argument("--refresh_cluster", help="Refresh period for cluster labels (seconds)")
+    parser.add_argument("--refresh_statefulset", help="Refresh period for stateful set labels (seconds)")
+    args = parser.parse_args()
+
+    if args.namespace==None:
+        args.namespace="default"
+    if args.refresh_cluster==None:
+        args.refresh_cluster=600
+    if args.refresh_statefulset==None:
+        args.refresh_statefulset=300
+    return args
+
+
 
 def replace_all(text, dic):
     for i, j in dic.items():
@@ -19,10 +41,10 @@ def replace_all(text, dic):
     return text
 
 
-def cluster_auth():
+def cluster_auth(zone,project):
     bash_auth = "gcloud auth activate-service-account --key-file /overscaler/credentials/application_default_credentials.json"
     subprocess.check_output(['bash', '-c', bash_auth])
-    bash_credentials="gcloud container clusters get-credentials cluster-gleam --zone europe-west2-a --project gleam-ai1"
+    bash_credentials="gcloud container clusters get-credentials cluster-gleam --zone "+str(zone)+" --project "+str(project)
     subprocess.check_output(['bash', '-c', bash_credentials])
   
 
@@ -115,7 +137,6 @@ def get_statefulset_labels(api,namespace):
     df_labels = pd.DataFrame()
     index=0
 
-
     for s in pre_set.response['items']:
         metrics = []
         rules = []
@@ -125,11 +146,11 @@ def get_statefulset_labels(api,namespace):
         autoscaler_count = 0
         max_replicas = 0
         min_replicas = 0
-        print(name)
         try:
             if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
-                output["resourceLabels"]["all-metrics"].lower() == "true":
+            s["metadata"]["labels"]["all-metrics"].lower() == "true":
                     metrics = list(standard_pod_metrics.keys())
+                    #print(metrics)
             elif len(list(filter(re.compile("metric-.*").search,
                                list(s["metadata"]["labels"].keys())))) > 0:
                 for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
@@ -139,15 +160,15 @@ def get_statefulset_labels(api,namespace):
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Error to get metrics for %s" % (
             s["metadata"]["name"]))
         try:
-            if "overscaler" and "max-nodes" and "min-nodes" and \
-                "autoscaler-count" and "current_count" in list(s["metadata"]["labels"].keys()) and  \
+            if "overscaler" and "max-replicas" and "min-replicas" and \
+                "autoscaler-count" and "current-count" in list(s["metadata"]["labels"].keys()) and  \
                 s["metadata"]["labels"]["overscaler"] == "true":
 
                 overscaler = s["metadata"]["labels"]["overscaler"]
-                current_count = s["metadata"]["labels"]["current_count"]
-                autoscaler_count = s["metadata"]["labels"]["autoscaler_count"]
-                max_replicas = s["metadata"]["labels"]["max_replicas"]
-                min_replicas = s["metadata"]["labels"]["min_replicas"]
+                current_count = s["metadata"]["labels"]["current-count"]
+                autoscaler_count = s["metadata"]["labels"]["autoscaler-count"]
+                max_replicas = s["metadata"]["labels"]["max-replicas"]
+                min_replicas = s["metadata"]["labels"]["min-replicas"]
 
                 if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
                     for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
@@ -159,15 +180,15 @@ def get_statefulset_labels(api,namespace):
                             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " + str(rule))
             else:
                 if s["metadata"]["labels"]["overscaler"] == "true":
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Stateful Set labels were incorrectly created.")
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Stateful Set labels were incorrectly created for "+s["metadata"]["name"])
             df_aux = pd.DataFrame(
-                    {'name': str(name),'overscaler':overscaler,'current_count':current_count,'autoscaler_count':autoscaler_count,'max_replicas':max_replicas,'min_replicas':min_replicas, 'metrics': [metrics],'rules':[rules]},index=[index])
+                    {'name': str(name),'overscaler':overscaler,'current-count':current_count,'autoscaler-count':autoscaler_count,'max-replicas':max_replicas,'min-replicas':min_replicas, 'metrics': [metrics],'rules':[rules]},index=[index])
             df_labels=pd.concat([df_labels,df_aux])
             index+=index
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[INFO POD] Stateful Set labels obtained correctly: "+str(name))
         except:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s. \"overscaler\" label is true?" % (s["metadata"]["name"]))
-    return df_labels
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s. Is \"overscaler\" label true?" % (s["metadata"]["name"]))
+    return df_labels.reset_index()
 
 
 
@@ -198,32 +219,32 @@ def get_nodes_status(metrics,standart_metrics):
                 node_status[j] = round(cpu_usage["metrics"][0]["value"]/cpu_allocatable["metrics"][0]["value"]*100,2)
             elif j in standart_metrics.keys():
                 node_status[j] = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+Nodes[i]+'/metrics/'+str(standart_metrics[j])).json()["metrics"][0]["value"]
-        df_aux = pd.DataFrame({'name':str(Nodes[i]),'status':[node_status],'cpu_allocatable':cpu_allocatable["metrics"][0]["value"],'memory_allocatable':memory_allocatable["metrics"][0]["value"]}, index=[i])
+        df_aux = pd.DataFrame({'name':str(Nodes[i]),'status':[node_status],'cpu-allocatable':cpu_allocatable["metrics"][0]["value"],'memory-allocatable':memory_allocatable["metrics"][0]["value"]}, index=[i])
         df_node_status=pd.concat([df_node_status,df_aux])
     return df_node_status
 
-def get_pods_status(node_name, memory_allocatable, cpu_allocatable, statefulset_labels,standart_metrics):
-    Pods = str(
-        subprocess.check_output("kubectl describe nodes "+str(node_name)+" | grep \"default \"",shell=True)).split("b'", 1)[1].split()
+def get_pods_status(memory_allocatable, cpu_allocatable, statefulset_labels,standart_metrics, namespace,api):
+    pre_set = pykube.Pod.objects(api)
     df_pods_status = pd.DataFrame()
+
     if not statefulset_labels.empty:
-        for i in range(int(len(Pods)/10)):
-            metrics= statefulset_labels.loc[statefulset_labels['name'] == str(str(Pods[i * 10 + 1]).rsplit("-",1)[0])]['metrics']
-            if not metrics.empty and len(metrics[0])!=0:
-                pod_status = {}
-                for j in metrics[0]:
+        for i in range(len(pre_set.response['items'])):
+            metrics= statefulset_labels.loc[statefulset_labels['name'] == str(pre_set.response['items'][i]['metadata']['name']).rsplit("-",1)[0]]['metrics']
+            pod_status = {}
+            if not metrics.empty:
+                for j in metrics.iloc[0]:
                     if j == "memory-usage-percent":
-                        memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(Pods[i * 10 + 1]) + "/metrics/memory/working_set").json()
+                        memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + str(pre_set.response['items'][i]['metadata']['name']) + "/metrics/memory/working_set").json()
                         pod_status[j] = round(memory_usage["metrics"][0]["value"] / memory_allocatable * 100, 2)
                     elif j == "cpu-usage-percent":
-                        cpu_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(Pods[i * 10 + 1]) + "/metrics/cpu/usage_rate").json()
+                        cpu_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + str(pre_set.response['items'][i]['metadata']['name']) + "/metrics/cpu/usage_rate").json()
                         pod_status[j] = round(cpu_usage["metrics"][0]["value"] / cpu_allocatable * 100, 2)
                     elif j in standart_metrics.keys():
-                        get_metric=requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/default/pods/" + str(Pods[i * 10 + 1]) + "/metrics/"+str(standart_metrics[j])).json()
+                        get_metric=requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + str(pre_set.response['items'][i]['metadata']['name']) + "/metrics/"+str(standart_metrics[j])).json()
                         if len(get_metric["metrics"])!=0:
                             pod_status[j] =get_metric["metrics"][0]["value"]
-            df_aux = pd.DataFrame({'node':str(node_name),'pod':str(Pods[i * 10 + 1]),'status':[pod_status]}, index=[i])
-            df_pods_status = pd.concat([df_pods_status, df_aux])
+                df_aux = pd.DataFrame({'node':str(pre_set.response['items'][i]['spec']['nodeName']),'pod': str(pre_set.response['items'][i]['metadata']['name']),'status':[pod_status]}, index=[i])
+                df_pods_status = pd.concat([df_pods_status, df_aux])
     return df_pods_status
 
 
@@ -236,23 +257,98 @@ def get_pods_status(node_name, memory_allocatable, cpu_allocatable, statefulset_
 
 # ACTIONS
 
-def actions(status, rules,name,kind):
-    if len(rules) > 0:
-        for j in range(len(rules)):
-            if str(rules[j]).split("_")[1] == "greater":
-                if float(status[str(rules[j]).split("_")[0]]) > float(str(rules[j]).split("_")[2]):
-                    if str(rules[j]).split("_")[3] == "scale":
-                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE "+str(kind)+": " + str(name) + " for rule: " + str(rules[j]).replace("_", " "))
-                    if str(rules[j]).split("_")[3] == "reduce":
-                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
-            if str(rules[j]).split("_")[1] == "lower":
-                if float(status[str(rules[j]).split("_")[0]]) < float(str(rules[j]).split("_")[2]):
-                    if str(rules[j]).split("_")[3] == "scale":
-                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                       gmtime()) + " [ACTION] IS NECESSARY TO SCALE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
-                    if str(rules[j]).split("_")[3] == "reduce":
-                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                       gmtime()) + " [ACTION] IS NECESSARY TO REDUCE THE "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
+def actions(api,status, rules,name,kind,namespace,max_nodes):
+    pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=name.rsplit("-",1)[0])
+    if int(pre_set.labels["current-count"])==0:
+        if len(rules) > 0:
+            for j in range(len(rules)):
+                action=None
+                if str(rules[j]).split("_")[1] == "greater":
+                    if float(status[str(rules[j]).split("_")[0]]) > float(str(rules[j]).split("_")[2]):
+                        if str(rules[j]).split("_")[3] == "scale":
+                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Is necessary to scale "+str(kind)+": " + str(name) + " for rule: " + str(rules[j]).replace("_", " "))
+                            action="scale"
+                        if str(rules[j]).split("_")[3] == "reduce":
+                            print(strftime("%Y-%m-%d %H:%M:%S",
+                                           gmtime()) + " [ACTION] Is necessary to reduce "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
+                            action="reduce"
+                if str(rules[j]).split("_")[1] == "lower":
+                    if float(status[str(rules[j]).split("_")[0]]) < float(str(rules[j]).split("_")[2]):
+                        if str(rules[j]).split("_")[3] == "scale":
+                            print(strftime("%Y-%m-%d %H:%M:%S",
+                                           gmtime()) + " [ACTION] Is necessary to scale "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
+                            action = "scale"
+                        if str(rules[j]).split("_")[3] == "reduce":
+                            print(strftime("%Y-%m-%d %H:%M:%S",
+                                           gmtime()) + " [ACTION] Is necessary to reduce "+str(kind)+": " + str(name)+ " for rule: " + str(rules[j]).replace("_", " "))
+                            action = "reduce"
+                if not action is None:
+                    rescale(api, str(name).rsplit("-", 1)[0], namespace, action,max_nodes)
+
+def rescale(api,statefulset_name,namespace,action,max_nodes):
+
+    pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=statefulset_name)
+
+    flag_error=0
+
+    if action is "scale" and pre_set.replicas<int(max_nodes) and pre_set.replicas<int(pre_set.labels['max-replicas']):
+        pre_set.replicas=pre_set.replicas+1
+        pre_set.labels["current-count"]=pre_set.labels["autoscaler-count"]
+        pre_set.update()
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling " + statefulset_name + "... ")
+    elif action is "reduce" and pre_set.replicas!=1 and pre_set.replicas>int(pre_set.labels['min-replicas']):
+        pre_set.replicas=pre_set.replicas-1
+        pre_set.labels["current-count"]=pre_set.labels["autoscaler-count"]
+        pre_set.update()
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling " + statefulset_name + "... ")
+    elif pre_set.replicas==1:
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling not possible, there is only one replica for "+statefulset_name)
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for "+statefulset_name+" is failed")
+        flag_error=1
+    elif pre_set.replicas>=int(max_nodes):
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling not possible, maximum nodes reached")
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for "+statefulset_name+" is failed")
+    elif pre_set.replicas >= int(pre_set.labels['max-replicas']):
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling not possible, maximum replicas reached for "+statefulset_name)
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for " + statefulset_name + " is failed")
+        flag_error=1
+    elif pre_set.replicas <= int(pre_set.labels['min-replicas']):
+        print(strftime("%Y-%m-%d %H:%M:%S",
+                       gmtime()) + " [ACTION] Rescaling not possible, minimum replicas reached for " + statefulset_name)
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for " + statefulset_name + " is failed")
+        flag_error=1
+
+    time.sleep(1)
 
 
+    pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace, field_selector={"metadata.name": statefulset_name})
+
+    while pre_set.response["items"][0]["status"]["currentReplicas"]!=pre_set.response["items"][0]["status"]["replicas"]:
+        pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace, field_selector={"metadata.name": statefulset_name})
+
+    if flag_error==0:
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for "+statefulset_name+" is completed")
+        time.sleep(10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def upgrade_current_count(api,statefulsets,namespace):
+    for i in range(len(statefulsets)):
+        pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=statefulsets[i])
+
+        if int(pre_set.labels["current-count"])>0:
+            pre_set.labels["current-count"]=str(int(pre_set.labels["current-count"])-1)
+            pre_set.update()
+            print(strftime("%Y-%m-%d %H:%M:%S",
+                           gmtime()) + " [ACTION] Update current-count for " +str(statefulsets[i]))
