@@ -25,13 +25,15 @@ spec:
       labels:
         name : "ubuntu-test"
         overscaler : "true" 
-        all-metrics: "true"
-        rule-1: "cpu-usage-percent_lower_10_reduce"
+        metrics-1: "cpu-usage-percent"
+        metrics-2: "memory-usage-percent"
+        metrics-3: "network-rx-rate"
+        rule-1: "cpu-usage-percent_greater_80_scale"
+        rule-2: "cpu-usage-percent_lower_80_reduce"
         current-count : "0"
         autoscaler-count : "2"
         min-replicas : "2"
         max-replicas : "5"
-        app: "ubuntu-test"
     spec:
       containers:
       - name: ubuntu-test
