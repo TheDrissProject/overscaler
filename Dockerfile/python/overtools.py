@@ -106,7 +106,19 @@ def get_num_nodes():
     """
     return len(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json())
 
+def get_mean(metric):
+    """
+    Returns number of active nodes.
 
+    Output:
+    - current_nodes: Number of current nodes. (int)
+    """
+    mean=0
+    for i in range(len(metric)):
+        mean+=float(metric[i]['value'])
+    if len(metric) > 0:
+        mean=mean/len(metric)
+    return round(mean, 2)
 
 
 # Get Labels Functions.
@@ -320,13 +332,13 @@ def get_node_status(metrics):
 
         for j in metrics:
             if j == "memory-usage-percent":
-                memory_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/memory/working_set').json()["metrics"][0]["value"]
-                status[j] = round(memory_usage/status['memory-allocatable']*100,2)
+                memory_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/memory/working_set').json()["metrics"]
+                status[j] = round(get_mean(memory_usage)/status['memory-allocatable']*100,2)
             elif j == "cpu-usage-percent":
-                cpu_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/cpu/usage_rate').json()["metrics"][0]["value"]
-                status[j] = round(cpu_usage/status['cpu-allocatable']*100,2)
+                cpu_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/cpu/usage_rate').json()["metrics"]
+                status[j] = round(get_mean(cpu_usage)/status['cpu-allocatable']*100,2)
             elif j in list(standard_node_metrics.keys()):
-                status[j] = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/'+str(standard_node_metrics[j])).json()["metrics"][0]["value"]
+                status[j] = get_mean(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/'+str(standard_node_metrics[j])).json()["metrics"])
         node_status[i]=status
 
     return node_status
@@ -386,14 +398,14 @@ def get_pod_status(api,namespace,statefulset_labels,memory_allocatable, cpu_allo
                     status={}
                     for j in metrics:
                         if j == "memory-usage-percent":
-                            memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/memory/working_set").json()["metrics"][0]["value"]
-                            status[j] = round(memory_usage / memory_allocatable * 100, 2)
+                            memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/memory/working_set").json()["metrics"]
+                            status[j] = round(get_mean(memory_usage) / memory_allocatable * 100, 2)
                         elif j == "cpu-usage-percent":
-                            cpu_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/cpu/usage_rate").json()["metrics"][0]["value"]
-                            status[j] = round(cpu_usage / cpu_allocatable * 100, 2)
+                            cpu_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/cpu/usage_rate").json()["metrics"]
+                            status[j] = round(get_mean(cpu_usage) / cpu_allocatable * 100, 2)
                         elif j in standard_pod_metrics.keys():
-                            metric=requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/"+str(standard_pod_metrics[j])).json()["metrics"][0]["value"]
-                            status[j] =metric
+
+                            status[j]=get_mean(requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/"+str(standard_pod_metrics[j])).json()["metrics"])
                     pod_status[node_name][pod_name]=status
 
     return pod_status
@@ -429,7 +441,7 @@ def actions(api,namespace, pod_status, statefulset_labels, max_nodes):
             if statefulset_name in statefulset_labels.keys() and statefulset_labels[statefulset_name]['overscaler']=='true':
 
                 pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=statefulset_name)
-                if int(pre_set.labels["current-count"])==0:
+                if int(pre_set.labels["current-count"])==0 and pre_set.labels["rescaling"]=="false":
 
                     if len(statefulset_labels[statefulset_name]['rules']) > 0:
                         for k in statefulset_labels[statefulset_name]['rules']:
@@ -475,12 +487,12 @@ def rescale(api,namespace,statefulset_name,action,max_nodes):
 
     if action is "scale" and pre_set.replicas<int(max_nodes) and pre_set.replicas<int(pre_set.labels['max-replicas']):
         pre_set.replicas=pre_set.replicas+1
-        pre_set.labels["current-count"]=pre_set.labels["autoscaler-count"]
+        pre_set.labels["rescaling"]="true"
         pre_set.update()
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling " + statefulset_name + "... ")
     elif action is "reduce" and pre_set.replicas!=1 and pre_set.replicas>int(pre_set.labels['min-replicas']):
         pre_set.replicas=pre_set.replicas-1
-        pre_set.labels["current-count"]=pre_set.labels["autoscaler-count"]
+        pre_set.labels["rescaling"]="true"
         pre_set.update()
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling " + statefulset_name + "... ")
     elif pre_set.replicas==1:
@@ -502,15 +514,6 @@ def rescale(api,namespace,statefulset_name,action,max_nodes):
 
     time.sleep(2)
 
-    pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace, field_selector={"metadata.name": statefulset_name})
-
-    while pre_set.response["items"][0]["status"]["currentReplicas"]!=pre_set.response["items"][0]["status"]["replicas"]:
-        pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace, field_selector={"metadata.name": statefulset_name})
-
-    if flag_error==0:
-        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for "+statefulset_name+" is completed")
-        time.sleep(2)
-
 
 
 def update_current_count(api,namespace,statefulsets_labels):
@@ -526,10 +529,19 @@ def update_current_count(api,namespace,statefulsets_labels):
 
     for i in statefulsets_labels.keys():
         if statefulsets_labels[i]['overscaler']=='true':
-            pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=i)
-
-            if int(pre_set.labels["current-count"])>0:
-                pre_set.labels["current-count"]=str(int(pre_set.labels["current-count"])-1)
-                pre_set.update()
+            pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace,
+                                                             field_selector={"metadata.name": i})
+            if pre_set.response["items"][0]["status"]["currentReplicas"]==pre_set.response["items"][0]["status"]["replicas"] and pre_set.response["items"][0]['metadata']['labels']['rescaling']=="true":
+                new_statefulset = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=i)
+                new_statefulset.labels["rescaling"] = "false"
+                new_statefulset.labels["current-count"] = new_statefulset.labels["autoscaler-count"]
+                new_statefulset.update()
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling for " + i + " is completed")
+                time.sleep(1)
+            if int(pre_set.response["items"][0]['metadata']['labels']['current-count'])>0 and pre_set.response["items"][0]['metadata']['labels']["rescaling"]=="false":
+                new_statefulset = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=i)
+                new_statefulset.labels["current-count"]=str(int(new_statefulset.labels["current-count"])-1)
+                new_statefulset.update()
+                time.sleep(1)
                 print(strftime("%Y-%m-%d %H:%M:%S",
                            gmtime()) + " [ACTION] Update current-count for " +i)
