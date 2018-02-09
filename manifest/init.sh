@@ -3,7 +3,6 @@ usage="Usage: init.sh (create|delete|reset)"
 
 # FUNCTIONS
 create() {
-    # Create secret with rails configuration files
     echo "Creating statefulsets with files..."
      kubectl apply -f ubuntu-test/
 
