@@ -17,7 +17,7 @@ def test_arguments():
     else:
         error=1
     assert error==0
-     simbols = list("0123456789abcdefghijklmnopqrstuvwxyzºª!·$%/()=?¿*^Ç:.,ºª@#~½¬~-_")
+    simbols = list("0123456789abcdefghijklmnopqrstuvwxyzºª!·$%/()=?¿*^Ç:.,ºª@#~½¬~-_")
     error=0
     for p in itertools.product(simbols, repeat=5):
         a=str(p).replace("(", "").replace(")", "").replace("\'", "").replace(", ", "")
