@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubuntu-test-hs
+  labels:
+    app: ubuntu-test
+spec:
+  clusterIP: None
+  selector:
+    app: ubuntu-test
+---
+apiVersion: apps/v1beta1 
+kind: StatefulSet
+metadata:
+  name: ubuntu-test
+spec:
+  serviceName: ubuntu-test-hs
+  selector:
+    matchLabels:
+      app: ubuntu-test
+  replicas: 3 
+  template: 
+    metadata:
+      labels:
+        app: "ubuntu-test"
+        name : "ubuntu-test"
+        overscaler : "true" 
+        metric-1: "cpu-usage-percent"
+        metric-2: "memory-usage-percent"
+        metric-3: "network-rx-rate"
+        rule-1: "cpu-usage-percent_lower_80_reduce"
+        current-count : "0"
+        autoscaler-count : "2"
+        min-replicas : "2"
+        max-replicas : "5"
+        rescaling : "false"
+    spec:
+      containers:
+      - name: ubuntu-test
+        image: ubuntu
+        ports:
+        command: ["/bin/sh","-c"]
+        args: ["sleep infinity"]
+        resources:
+            limits:
+              cpu: 100m
+              memory: 300Mi

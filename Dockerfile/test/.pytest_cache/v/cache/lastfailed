@@ -1,0 +1,4 @@
+{
+  "main.py::test_arguments": true,
+  "main.py::test_check_rule": true
+}

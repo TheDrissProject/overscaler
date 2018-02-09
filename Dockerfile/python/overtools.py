@@ -1,14 +1,13 @@
 import subprocess
 import requests
 import time
-from ast import literal_eval
 import json
 import operator
 import pykube
 from time import gmtime, strftime
 import re
 import argparse
-
+import numpy as np
 
 # JSON files with available metrics
 standard_node_metrics = json.load(open('/overscaler/python/node_metrics.json'))
@@ -28,21 +27,26 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--namespace", help="Cluster namespace")
-    parser.add_argument("--project", help="Project name")
-    parser.add_argument("--zone", help="Zone name")
+    parser.add_argument("--project", help="Project name", required=True)
+    parser.add_argument("--zone", help="Zone name", required=True)
     parser.add_argument("--refresh_cluster", help="Refresh period for cluster labels. (seconds)")
     parser.add_argument("--refresh_statefulset", help="Refresh period for stateful set labels. (seconds)")
     parser.add_argument("--refresh_auth", help="Refresh period for Api authentication. (seconds)")
     args = parser.parse_args()
 
     if args.namespace==None:
+        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--namespace\" is None, changed to \"default\"")
         args.namespace="default"
-    if args.refresh_cluster==None:
+    if args.refresh_cluster==None or not args.refresh_cluster.isdigit():
+        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_cluster\" is None or not digit, changed to 600")
         args.refresh_cluster=600
-    if args.refresh_statefulset==None:
+    if args.refresh_statefulset==None or not args.refresh_statefulset.isdigit():
+        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_statefulset\" is None or not digit, changed to 300")
         args.refresh_statefulset=300
-    if args.refresh_auth==None:
-        args.refresh_statefulset=600
+    if args.refresh_auth==None or not args.refresh_auth.isdigit():
+        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_auth\" is None or not digit, changed to 600")
+        args.refresh_auth=600
+
     return args
 
 
@@ -114,10 +118,13 @@ def get_mean(metric):
     - current_nodes: Number of current nodes. (int)
     """
     mean=0
+    cont=0
     for i in range(len(metric)):
-        mean+=float(metric[i]['value'])
-    if len(metric) > 0:
-        mean=mean/len(metric)
+        if isinstance(metric[i],dict) and 'value' in metric[i].keys() and str(metric[i]['value']).isdigit():
+            mean+=float(metric[i]['value'])
+            cont+=1
+    if cont > 0:
+        mean=mean/cont
     return round(mean, 2)
 
 
@@ -181,12 +188,11 @@ def get_cluster_labels(zone,project):
                     else:
                         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
             else:
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels were incorrectly created.")
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels without rules or with rules incorrectly created.")
 
     if str(str(autoscale).lower()) == "true":
         max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
         min_nodes = output["nodePools"][0]["autoscaling"]["minNodeCount"]
-
     return autoscale, max_nodes,min_nodes, overscaler, metrics, rules
 
 
@@ -252,7 +258,7 @@ def get_statefulset_labels(api,namespace):
             name))
         try:
             if "overscaler" and "max-replicas" and "min-replicas" and \
-                "autoscaler-count" and "current-count" in list(s["metadata"]["labels"].keys()) and  \
+                "autoscaler-count" and "current-count" and "rescaling" in list(s["metadata"]["labels"].keys()) and  \
                 s["metadata"]["labels"]["overscaler"] == "true":
 
                 overscaler = s["metadata"]["labels"]["overscaler"]
@@ -448,7 +454,7 @@ def actions(api,namespace, pod_status, statefulset_labels, max_nodes):
 
                             action=None
                             if k.split("_")[1] == "greater":
-                                if float(pod_status[i][j][k.split("_")[0]]) > float(k.split("_")[2]):
+                                if float(pod_status[i][j][k.split("_")[0]]) >= float(k.split("_")[2]):
                                     if k.split("_")[3] == "scale":
                                         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Is necessary to scale " + j + " for rule: " + k.replace("_", " "))
                                         action="scale"
@@ -457,7 +463,7 @@ def actions(api,namespace, pod_status, statefulset_labels, max_nodes):
                                            gmtime()) + " [ACTION] Is necessary to reduce " + j + " for rule: " + k.replace("_", " "))
                                         action="reduce"
                             if k.split("_")[1] == "lower":
-                                if float(pod_status[i][j][k.split("_")[0]]) < float(k.split("_")[2]):
+                                if float(pod_status[i][j][k.split("_")[0]]) <= float(k.split("_")[2]):
                                     if k.split("_")[3] == "scale":
                                         print(strftime("%Y-%m-%d %H:%M:%S",
                                            gmtime()) + " [ACTION] Is necessary to scale " + j + " for rule: " + k.replace("_", " "))
@@ -466,6 +472,7 @@ def actions(api,namespace, pod_status, statefulset_labels, max_nodes):
                                         print(strftime("%Y-%m-%d %H:%M:%S",
                                            gmtime()) + " [ACTION] Is necessary to reduce " + j + " for rule: " + k.replace("_", " "))
                                         action = "reduce"
+
                             rescale(api, namespace, statefulset_name, action,max_nodes)
 
 
