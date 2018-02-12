@@ -79,7 +79,7 @@ def start_proxy():
 
 
 
-def check_rule(rule):
+def check_rule(rule,type):
     """
     Checks the rules are well written.
     Format rule: metric_greater|lower_limit_scale|reduce|and_*
@@ -93,11 +93,18 @@ def check_rule(rule):
 
     rule=rule.split("_")
     check = False
-    if len(rule)==4 and rule[0] in list(standard_pod_metrics.keys())\
-        and (rule[1]=="greater" or rule[1]=="lower") and rule[2].isdigit()\
-        and (rule[3]=="scale" or rule[3]=="reduce" or\
-        len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
-        check=True
+    if type=="pod":
+        if len(rule)==4 and rule[0] in list(standard_pod_metrics.keys())\
+            and (rule[1]=="greater" or rule[1]=="lower") and rule[2].isdigit()\
+            and (rule[3]=="scale" or rule[3]=="reduce" or\
+            len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
+                check=True
+    if type=="node":
+        if len(rule)==4 and rule[0] in list(standard_node_metrics.keys())\
+            and (rule[1]=="greater" or rule[1]=="lower") and rule[2].isdigit()\
+            and (rule[3]=="scale" or rule[3]=="reduce" or\
+            len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
+                check=True
     return check
 
 
@@ -185,7 +192,7 @@ def get_cluster_labels(zone,project):
                 if len(list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys())))) > 0:
                     for i in list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys()))):
                         rule = output["resourceLabels"][i]
-                        check=check_rule(rule)
+                        check=check_rule(rule,"node")
                         if check:
                             rules.append(rule)
                         else:
@@ -274,7 +281,7 @@ def get_statefulset_labels(api,namespace):
                 if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
                     for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
                         rule = s["metadata"]["labels"][i]
-                        check = check_rule(rule)
+                        check = check_rule(rule,"pod")
                         if check:
                             rules.append(rule)
                         else:

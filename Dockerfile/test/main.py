@@ -16,7 +16,7 @@ def test_arguments():
     else:
         error=1
     assert error==0
-    simbols = list("0123456789abcdefghijklmnopqrstuvwxyzºª!·$%/()=?¿*^Ç:.,ºª@#~½¬~-_")
+    simbols = list("0123456789abcdefghijklmnopqrstuvwxyz!$%/()=?*^:.,@#~-_")
     error=0
     for p in itertools.product(simbols, repeat=3):
         a=str(p).replace("(", "").replace(")", "").replace("\'", "").replace(", ", "")
@@ -33,27 +33,38 @@ def test_check_rule():
     for p in itertools.product(simbols, repeat=3):
         a=str(p).replace("(", "").replace(")", "").replace("\'", "").replace(", ", "")
         if not a in standard_pod_metrics.keys() and not a in standard_node_metrics.keys():
-            assert ot.check_rule(a) == False
-            assert ot.check_rule(a+"_lower") == False
-            assert ot.check_rule(a+"_lower_100") == False
-            assert ot.check_rule(a+"_lower_100_scale")==False
-            assert ot.check_rule(a+"_greater_100_scale")==False
-            assert ot.check_rule(a+"_lower_100_reduce")==False
-            assert ot.check_rule(a+"_greater_100_reduce")==False
-            assert ot.check_rule(a+"_low_100_scale")==False
-            assert ot.check_rule(a+"_great_100_scale")==False
-            assert ot.check_rule(a+"_lower_100_red")==False
-            assert ot.check_rule(a+"_greater_100_sca")==False
+            assert ot.check_rule(a,"node") == False
+            assert ot.check_rule(a+"_lower","node") == False
+            assert ot.check_rule(a+"_lower_100","node") == False
+            assert ot.check_rule(a+"_lower_100_scale","node")==False
+            assert ot.check_rule(a+"_greater_100_scale","node")==False
+            assert ot.check_rule(a+"_lower_100_reduce","node")==False
+            assert ot.check_rule(a+"_greater_100_reduce","node")==False
+            assert ot.check_rule(a+"_low_100_scale","node")==False
+            assert ot.check_rule(a+"_great_100_scale","node")==False
+            assert ot.check_rule(a+"_lower_100_red","node")==False
+            assert ot.check_rule(a+"_greater_100_sca","node")==False
+            assert ot.check_rule(a,"pod") == False
+            assert ot.check_rule(a+"_lower","pod") == False
+            assert ot.check_rule(a+"_lower_100","pod") == False
+            assert ot.check_rule(a+"_lower_100_scale","pod")==False
+            assert ot.check_rule(a+"_greater_100_scale","pod")==False
+            assert ot.check_rule(a+"_lower_100_reduce","pod")==False
+            assert ot.check_rule(a+"_greater_100_reduce","pod")==False
+            assert ot.check_rule(a+"_low_100_scale","pod")==False
+            assert ot.check_rule(a+"_great_100_scale","pod")==False
+            assert ot.check_rule(a+"_lower_100_red","pod")==False
+            assert ot.check_rule(a+"_greater_100_sca","pod")==False
     for a in standard_node_metrics.keys():
-        assert ot.check_rule(a + "_lower_100_scale") == True
-        assert ot.check_rule(a + "_greater_100_scale") == True
-        assert ot.check_rule(a + "_lower_100_reduce") == True
-        assert ot.check_rule(a + "_greater_100_reduce") == True
+        assert ot.check_rule(a + "_lower_100_scale","node") == True
+        assert ot.check_rule(a + "_greater_100_scale","node") == True
+        assert ot.check_rule(a + "_lower_100_reduce","node") == True
+        assert ot.check_rule(a + "_greater_100_reduce","node") == True
     for a in standard_pod_metrics.keys():
-        assert ot.check_rule(a + "_lower_100_scale") == True
-        assert ot.check_rule(a + "_greater_100_scale") == True
-        assert ot.check_rule(a + "_lower_100_reduce") == True
-        assert ot.check_rule(a + "_greater_100_reduce") == True
+        assert ot.check_rule(a + "_lower_100_scale","pod") == True
+        assert ot.check_rule(a + "_greater_100_scale","pod") == True
+        assert ot.check_rule(a + "_lower_100_reduce","pod") == True
+        assert ot.check_rule(a + "_greater_100_reduce","pod") == True
 
 def test_get_mean():
     assert ot.get_mean({})==0
@@ -61,7 +72,7 @@ def test_get_mean():
     assert ot.get_mean([1])==0
     assert ot.get_mean(["k"])==0
     assert ot.get_mean([[]])==0
-    assert ot.get_mean({{{}}})==0
+    assert ot.get_mean({[[]]})==0
     assert ot.get_mean([{'value':0}])==0
     assert ot.get_mean([{'value':3},{'value':-5},{'value':"7"},{'value':"string"}])==5
     assert ot.get_mean([{'value':3},{'value':-5},{'value':{"lle":"7"}},{'value':"string"}])==3
