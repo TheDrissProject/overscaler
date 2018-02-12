@@ -2,5 +2,5 @@
 "autoscale":false,
 "max_nodes": 0,
 "min_nodes": 0,  
-"overscaler": "true"
+"overscaler": false
 }

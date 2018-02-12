@@ -177,7 +177,7 @@ def get_cluster_labels(cluster_info):
                     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i))
 
         if "overscaler" in list(cluster_info["resourceLabels"].keys()) and cluster_info["resourceLabels"]["overscaler"] == "true":
-            overscaler = cluster_info["resourceLabels"]["overscaler"]
+            overscaler = True
 
             if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
                 for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
