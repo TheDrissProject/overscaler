@@ -29,6 +29,8 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            mkdir /overscaler
+            mkdir /overscaler/python
             mv Dockerfile/python/pod_metrics.json /overscaler/python/pod_metrics.json
             mv Dockerfile/python/node_metrics.json /overscaler/python/node_metrics.json
             python3 -m venv venv
