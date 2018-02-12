@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: circleci/python:3.6.1
+      - image: ubuntu
       
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -27,12 +27,18 @@ jobs:
           - v1-dependencies-
 
       - run:
-          name: install dependencies
+          name: install pip and create necessary directories.
           command: |
+            apt update && apt -y upgrade
+            apt install -y python3-pip 
             mkdir /overscaler
             mkdir /overscaler/python
             mv Dockerfile/python/pod_metrics.json /overscaler/python/pod_metrics.json
             mv Dockerfile/python/node_metrics.json /overscaler/python/node_metrics.json
+
+      - run:
+          name: install dependencies
+          command: |
             python3 -m venv venv
             . venv/bin/activate
             pip3 install --upgrade pip
