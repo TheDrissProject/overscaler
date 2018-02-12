@@ -151,6 +151,10 @@ def get_cluster_labels(zone,project):
     - rules: List of cluster rules for node autoscale. (string array) NOT IMPLEMENTED
     """
 
+    metrics = []
+    rules = []
+    overscaler = "false"
+    autoscale = "false"
     max_nodes = 0
     min_nodes= 0
 
@@ -159,40 +163,40 @@ def get_cluster_labels(zone,project):
     output = str(subprocess.check_output(bash_describe, shell=True))
     output = json.loads(output.replace("\\n", "").replace("b\'", "").replace("\'", ""))
 
-    autoscale = output["nodePools"][0]["autoscaling"]["enabled"]
-    metrics = []
-    rules=[]
-    overscaler = "false"
+    if "nodePools" and "resourceLabels" in list(output.keys()) and len(output["nodePools"])>0:
+        autoscale = output["nodePools"][0]["autoscaling"]["enabled"]
 
-    if "all-metrics" in list(output["resourceLabels"].keys()) and \
-        output["resourceLabels"]["all-metrics"].lower()=="true":
-        metrics=list(standard_node_metrics.keys())
-    elif len(list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys())))) > 0:
-        for i in list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys()))):
-            if output["resourceLabels"][i] in list(standard_node_metrics.keys()):
+
+        if "all-metrics" in list(output["resourceLabels"].keys()) and \
+            output["resourceLabels"]["all-metrics"].lower()=="true":
+            metrics=list(standard_node_metrics.keys())
+        elif len(list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys())))) > 0:
+            for i in list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys()))):
+                if output["resourceLabels"][i] in list(standard_node_metrics.keys()):
                     metrics.append(output["resourceLabels"][i])
-            else:
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i))
+                else:
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i))
 
-    if "overscaler" in list(output["resourceLabels"].keys()):
-        if output["resourceLabels"]["overscaler"] == "true":
+        if "overscaler" in list(output["resourceLabels"].keys()):
+            if output["resourceLabels"]["overscaler"] == "true":
 
-            overscaler = output["resourceLabels"]["overscaler"]
+                overscaler = output["resourceLabels"]["overscaler"]
 
-            if len(list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys())))) > 0:
-                for i in list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys()))):
-                    rule = output["resourceLabels"][i]
-                    check=check_rule(rule)
-                    if check:
-                        rules.append(rule)
-                    else:
-                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
-            else:
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels without rules or with rules incorrectly created.")
+                if len(list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys())))) > 0:
+                    for i in list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys()))):
+                        rule = output["resourceLabels"][i]
+                        check=check_rule(rule)
+                        if check:
+                            rules.append(rule)
+                        else:
+                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
+                else:
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels without rules or with rules incorrectly created.")
 
-    if str(str(autoscale).lower()) == "true":
-        max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
-        min_nodes = output["nodePools"][0]["autoscaling"]["minNodeCount"]
+        if str(str(autoscale).lower()) == "true":
+            max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
+            min_nodes = output["nodePools"][0]["autoscaling"]["minNodeCount"]
+
     return autoscale, max_nodes,min_nodes, overscaler, metrics, rules
 
 
