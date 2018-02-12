@@ -1,0 +1,14 @@
+{
+  "nodePools": [
+    {
+      "autoscaling": {
+      }
+    }
+  ],
+  "resourceLabels": {
+    "all-metrics": "true",
+    "overscaler": "true"
+  }
+}
+
+

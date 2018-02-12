@@ -1,0 +1,17 @@
+{
+  "nodePools": [
+    {
+      "autoscaling": {
+        "enabled": true,
+        "maxNodeCount": -5,
+        "minNodeCount": 5
+      }
+    }
+  ],
+  "resourceLabels": {
+    "all-metrics": "true",
+    "overscaler": "true"
+  }
+}
+
+

@@ -2,6 +2,8 @@ import pykube
 import overtools as ot
 import overprint as op
 import datetime
+import subprocess
+import json
 
 
 
@@ -19,9 +21,17 @@ def main():
     ot.start_proxy()
 
     #Getting information about cluster and stateful sets.
-    autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels(args.zone,args.project)
-    statefulset_labels=ot.get_statefulset_labels(api,args.namespace)
+
+    bash_describe = "gcloud container clusters describe --format=json cluster-gleam --zone "+str(args.zone)+" --project "+str(args.project)
+    cluster_info = str(subprocess.check_output(bash_describe, shell=True)).replace("\\n", "").replace("b\'", "").replace("\'", "")
+    cluster_info = json.loads(cluster_info)
+    autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels(cluster_info)
+
+    statefulset_info = pykube.StatefulSet.objects(api).filter(namespace=args.namespace).response
+    statefulset_labels=ot.get_statefulset_labels(statefulset_info)
     current_nodes=ot.get_num_nodes()
+
+    if autoscale==False: max_nodes, min_nodes =current_nodes, current_nodes
 
     #Printing information by console.
     op.print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,overscaler,metrics,rules)
@@ -44,15 +54,21 @@ def main():
         #Is it necessary to refresh node information?
         t2=datetime.datetime.now()
         if (t2-t_nodes).seconds>int(args.refresh_cluster):
-            autoscale, max_nodes, min_nodes, overscaler, metrics, rules = ot.get_cluster_labels(args.zone,args.project)
+            output = str(subprocess.check_output(bash_describe, shell=True)).replace("\\n", "").replace("b\'",
+                                                                                                        "").replace(
+                "\'", "")
+            output = json.loads(output)
+            autoscale, max_nodes, min_nodes, overscaler, metrics, rules = ot.get_cluster_labels(output)
             current_nodes = ot.get_num_nodes()
+            if autoscale == False: max_nodes, min_nodes =current_nodes, current_nodes
             op.print_cluster_info(autoscale, current_nodes, max_nodes, min_nodes, overscaler, metrics, rules)
             t_nodes = datetime.datetime.now()
 
         #Is it necessary to refresh stateful set information?
         t3=datetime.datetime.now()
         if (t3-t_statefulset).seconds>int(args.refresh_statefulset):
-            statefulset_labels = ot.get_statefulset_labels(api, args.namespace)
+            statefulset_info = pykube.StatefulSet.objects(api).filter(namespace=args.namespace).response
+            statefulset_labels = ot.get_statefulset_labels(statefulset_info)
             op.print_statefulset_info(statefulset_labels)
             t_statefulset = datetime.datetime.now()
 

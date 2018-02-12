@@ -138,7 +138,7 @@ def get_mean(metric):
 # Get Labels Functions.
 
 
-def get_cluster_labels(zone,project):
+def get_cluster_labels(cluster_info):
     """
     Gets cluster information.
 
@@ -160,38 +160,31 @@ def get_cluster_labels(zone,project):
 
     metrics = []
     rules = []
-    overscaler = "false"
-    autoscale = "false"
+    overscaler = False
+    autoscale = False
     max_nodes = 0
     min_nodes= 0
 
-    bash_describe = "gcloud container clusters describe --format=json cluster-gleam --zone "+str(zone)+" --project "+str(project)
 
-    output = str(subprocess.check_output(bash_describe, shell=True))
-    output = json.loads(output.replace("\\n", "").replace("b\'", "").replace("\'", ""))
-
-    if "nodePools" and "resourceLabels" in list(output.keys()) and len(output["nodePools"])>0:
-        autoscale = output["nodePools"][0]["autoscaling"]["enabled"]
-
-
-        if "all-metrics" in list(output["resourceLabels"].keys()) and \
-            output["resourceLabels"]["all-metrics"].lower()=="true":
+    if "nodePools" and "resourceLabels" in list(cluster_info.keys()) and len(cluster_info["nodePools"])>0:
+        if "all-metrics" in list(cluster_info["resourceLabels"].keys()) and \
+            cluster_info["resourceLabels"]["all-metrics"].lower()=="true":
             metrics=list(standard_node_metrics.keys())
-        elif len(list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys())))) > 0:
-            for i in list(filter(re.compile("metric-.*").search, list(output["resourceLabels"].keys()))):
-                if output["resourceLabels"][i] in list(standard_node_metrics.keys()):
-                    metrics.append(output["resourceLabels"][i])
+        elif len(list(filter(re.compile("metric-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
+            for i in list(filter(re.compile("metric-.*").search, list(cluster_info["resourceLabels"].keys()))):
+                if cluster_info["resourceLabels"][i] in list(standard_node_metrics.keys()):
+                    metrics.append(cluster_info["resourceLabels"][i])
                 else:
                     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i))
 
-        if "overscaler" in list(output["resourceLabels"].keys()):
-            if output["resourceLabels"]["overscaler"] == "true":
+        if "overscaler" in list(cluster_info["resourceLabels"].keys()):
+            if cluster_info["resourceLabels"]["overscaler"] == "true":
 
-                overscaler = output["resourceLabels"]["overscaler"]
+                overscaler = cluster_info["resourceLabels"]["overscaler"]
 
-                if len(list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys())))) > 0:
-                    for i in list(filter(re.compile("rule-.*").search, list(output["resourceLabels"].keys()))):
-                        rule = output["resourceLabels"][i]
+                if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
+                    for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
+                        rule = cluster_info["resourceLabels"][i]
                         check=check_rule(rule,"node")
                         if check:
                             rules.append(rule)
@@ -200,15 +193,26 @@ def get_cluster_labels(zone,project):
                 else:
                     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels without rules or with rules incorrectly created.")
 
-        if str(str(autoscale).lower()) == "true":
-            max_nodes = output["nodePools"][0]["autoscaling"]["maxNodeCount"]
-            min_nodes = output["nodePools"][0]["autoscaling"]["minNodeCount"]
+        try:
+            if "autoscaling" in cluster_info["nodePools"][0].keys() and "enabled" in cluster_info["nodePools"][0]["autoscaling"].keys()\
+                and cluster_info["nodePools"][0]["autoscaling"]["enabled"]==True \
+                and cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"]>0 \
+                and cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"]>0:
+                autoscale = cluster_info["nodePools"][0]["autoscaling"]["enabled"]
+                max_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"])
+                min_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"])
+        except:
+            max_nodes = 0
+            min_nodes = 0
+            autoscale=False
+
+
 
     return autoscale, max_nodes,min_nodes, overscaler, metrics, rules
 
 
 
-def get_statefulset_labels(api,namespace):
+def get_statefulset_labels(statefulset_info):
     """
     Gets Stateful Set information.
     Returns information about labels, metrics and rules.
@@ -242,59 +246,57 @@ def get_statefulset_labels(api,namespace):
     }
     """
 
-    pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace)
     statefulset_labels = {}
-
-    for s in pre_set.response['items']:
-        metrics = []
-        rules = []
-        overscaler = "false"
-        name = s["metadata"]["name"]
-        current_count = 0
-        autoscaler_count = 0
-        max_replicas = 0
-        min_replicas = 0
-        try:
-            if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
-            s["metadata"]["labels"]["all-metrics"].lower() == "true":
-                metrics = list(standard_pod_metrics.keys())
-            elif len(list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys())))) > 0:
-                for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
-                    if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
-                        metrics.append(s["metadata"]["labels"][i])
-                    else:
-                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
-        except:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Error to get metrics for %s" % (
-            name))
-        try:
-            if "overscaler" and "max-replicas" and "min-replicas" and \
-                "autoscaler-count" and "current-count" and "rescaling" in list(s["metadata"]["labels"].keys()) and  \
-                s["metadata"]["labels"]["overscaler"] == "true":
-
-                overscaler = s["metadata"]["labels"]["overscaler"]
-                current_count = s["metadata"]["labels"]["current-count"]
-                autoscaler_count = s["metadata"]["labels"]["autoscaler-count"]
-                max_replicas = s["metadata"]["labels"]["max-replicas"]
-                min_replicas = s["metadata"]["labels"]["min-replicas"]
-
-                if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
-                    for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
-                        rule = s["metadata"]["labels"][i]
-                        check = check_rule(rule,"pod")
-                        if check:
-                            rules.append(rule)
+    if "items"  in list(statefulset_info.keys()) and len(statefulset_info["items"]) > 0:
+        for s in statefulset_info['items']:
+            metrics = []
+            rules = []
+            overscaler = "false"
+            name = s["metadata"]["name"]
+            current_count = 0
+            autoscaler_count = 0
+            max_replicas = 0
+            min_replicas = 0
+            try:
+                if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
+                s["metadata"]["labels"]["all-metrics"].lower() == "true":
+                    metrics = list(standard_pod_metrics.keys())
+                elif len(list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys())))) > 0:
+                    for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
+                        if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
+                            metrics.append(s["metadata"]["labels"][i])
                         else:
-                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i)+" of Stateful Set "+name+": "+str(rule))
+                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
+            except:
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Error to get metrics for %s" % (name))
+            try:
+                if "overscaler" and "max-replicas" and "min-replicas" and \
+                    "autoscaler-count" and "current-count" and "rescaling" in list(s["metadata"]["labels"].keys()) and  \
+                    s["metadata"]["labels"]["overscaler"] == "true":
 
-            else:
-                if s["metadata"]["labels"]["overscaler"] == "true":
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] More overscaler labels are needed for "+name+". Autoscale off.")
+                    overscaler = s["metadata"]["labels"]["overscaler"]
+                    current_count = s["metadata"]["labels"]["current-count"]
+                    autoscaler_count = s["metadata"]["labels"]["autoscaler-count"]
+                    max_replicas = s["metadata"]["labels"]["max-replicas"]
+                    min_replicas = s["metadata"]["labels"]["min-replicas"]
 
-            statefulset_labels[name]= {'overscaler':overscaler,'current-count':current_count,'autoscaler-count':autoscaler_count,'max-replicas':max_replicas,'min-replicas':min_replicas, 'metrics': metrics,'rules':rules}
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[INFO POD] Stateful Set labels obtained correctly: "+str(name))
-        except:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s. Is \"overscaler\" label true?" % (s["metadata"]["name"]))
+                    if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
+                        for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
+                            rule = s["metadata"]["labels"][i]
+                            check = check_rule(rule,"pod")
+                            if check:
+                                rules.append(rule)
+                            else:
+                                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i)+" of Stateful Set "+name+": "+str(rule))
+
+                else:
+                    if s["metadata"]["labels"]["overscaler"] == "true":
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] More overscaler labels are needed for "+name+". Autoscale off.")
+
+                statefulset_labels[name]= {'overscaler':overscaler,'current-count':current_count,'autoscaler-count':autoscaler_count,'max-replicas':max_replicas,'min-replicas':min_replicas, 'metrics': metrics,'rules':rules}
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[INFO POD] Stateful Set labels obtained correctly: "+str(name))
+            except:
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s. Is \"overscaler\" label true?" % (s["metadata"]["name"]))
     return statefulset_labels
 
 
@@ -501,8 +503,6 @@ def rescale(api,namespace,statefulset_name,action,max_nodes):
     """
     pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=statefulset_name)
 
-    flag_error=0
-
     if action is "scale" and pre_set.replicas<int(max_nodes) and pre_set.replicas<int(pre_set.labels['max-replicas']):
         pre_set.replicas=pre_set.replicas+1
         pre_set.labels["rescaling"]="true"
@@ -516,19 +516,16 @@ def rescale(api,namespace,statefulset_name,action,max_nodes):
     elif pre_set.replicas==1:
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling not possible, there is only one replica for "+statefulset_name)
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for "+statefulset_name+" is failed")
-        flag_error=1
     elif pre_set.replicas>=int(max_nodes):
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling not possible, maximum nodes reached")
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for "+statefulset_name+" is failed")
     elif pre_set.replicas >= int(pre_set.labels['max-replicas']):
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Rescaling not possible, maximum replicas reached for "+statefulset_name)
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for " + statefulset_name + " is failed")
-        flag_error=1
     elif pre_set.replicas <= int(pre_set.labels['min-replicas']):
         print(strftime("%Y-%m-%d %H:%M:%S",
                        gmtime()) + " [ACTION] Rescaling not possible, minimum replicas reached for " + statefulset_name)
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Resizing for " + statefulset_name + " is failed")
-        flag_error=1
 
     time.sleep(2)
 
