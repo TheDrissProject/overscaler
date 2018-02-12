@@ -165,8 +165,7 @@ def get_cluster_labels(cluster_info):
     max_nodes = 0
     min_nodes= 0
 
-
-    if "nodePools" and "resourceLabels" in list(cluster_info.keys()) and len(cluster_info["nodePools"])>0:
+    try:
         if "all-metrics" in list(cluster_info["resourceLabels"].keys()) and \
             cluster_info["resourceLabels"]["all-metrics"].lower()=="true":
             metrics=list(standard_node_metrics.keys())
@@ -175,37 +174,38 @@ def get_cluster_labels(cluster_info):
                 if cluster_info["resourceLabels"][i] in list(standard_node_metrics.keys()):
                     metrics.append(cluster_info["resourceLabels"][i])
                 else:
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i))
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i))
 
-        if "overscaler" in list(cluster_info["resourceLabels"].keys()):
-            if cluster_info["resourceLabels"]["overscaler"] == "true":
+        if "overscaler" in list(cluster_info["resourceLabels"].keys()) and cluster_info["resourceLabels"]["overscaler"] == "true":
+            overscaler = cluster_info["resourceLabels"]["overscaler"]
 
-                overscaler = cluster_info["resourceLabels"]["overscaler"]
+            if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
+                for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
+                    rule = cluster_info["resourceLabels"][i]
+                    check=check_rule(rule,"node")
+                    if check:
+                        rules.append(rule)
+                    else:
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong built rule: " +str(rule))
+            else:
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Cluster labels without rules or with rules incorrectly created.")
 
-                if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
-                    for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
-                        rule = cluster_info["resourceLabels"][i]
-                        check=check_rule(rule,"node")
-                        if check:
-                            rules.append(rule)
-                        else:
-                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong built rule: " +str(rule))
-                else:
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Cluster labels without rules or with rules incorrectly created.")
 
-        try:
-            if "autoscaling" in cluster_info["nodePools"][0].keys() and "enabled" in cluster_info["nodePools"][0]["autoscaling"].keys()\
-                and cluster_info["nodePools"][0]["autoscaling"]["enabled"]==True \
-                and cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"]>0 \
-                and cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"]>0:
-                autoscale = cluster_info["nodePools"][0]["autoscaling"]["enabled"]
-                max_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"])
-                min_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"])
-        except:
-            max_nodes = 0
-            min_nodes = 0
-            autoscale=False
-
+        if  cluster_info["nodePools"][0]["autoscaling"]["enabled"]==True \
+            and cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"]>0 \
+            and cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"]>0:
+            autoscale = cluster_info["nodePools"][0]["autoscaling"]["enabled"]
+            max_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"])
+            min_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"])
+    except:
+        metrics = []
+        rules = []
+        overscaler = False
+        autoscale = False
+        max_nodes = 0
+        min_nodes = 0
+        print(strftime("%Y-%m-%d %H:%M:%S",
+                       gmtime()) + " [ERROR] Cluster without labels or with labels incorrectly created.")
 
 
     return autoscale, max_nodes,min_nodes, overscaler, metrics, rules
@@ -247,56 +247,66 @@ def get_statefulset_labels(statefulset_info):
     """
 
     statefulset_labels = {}
-    if "items"  in list(statefulset_info.keys()) and len(statefulset_info["items"]) > 0:
-        for s in statefulset_info['items']:
+    for s in statefulset_info['items']:
+        metrics = []
+        rules = []
+        overscaler = "false"
+        name = s["metadata"]["name"]
+        current_count = 0
+        autoscaler_count = 0
+        max_replicas = 0
+        min_replicas = 0
+        try:
+            if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
+            s["metadata"]["labels"]["all-metrics"].lower() == "true":
+                metrics = list(standard_pod_metrics.keys())
+            elif len(list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys())))) > 0:
+                for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
+                    if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
+                        metrics.append(s["metadata"]["labels"][i])
+                    else:
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
+        except:
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Error to get metrics for %s" % (name))
             metrics = []
-            rules = []
+        try:
+            if "overscaler" and "max-replicas" and "min-replicas" and \
+                "autoscaler-count" and "current-count" and "rescaling" in list(s["metadata"]["labels"].keys()) and  \
+                s["metadata"]["labels"]["overscaler"] == "true":
+
+                overscaler = s["metadata"]["labels"]["overscaler"]
+                current_count = s["metadata"]["labels"]["current-count"]
+                autoscaler_count = s["metadata"]["labels"]["autoscaler-count"]
+                max_replicas = s["metadata"]["labels"]["max-replicas"]
+                min_replicas = s["metadata"]["labels"]["min-replicas"]
+
+                if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
+                    for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
+                        rule = s["metadata"]["labels"][i]
+                        check = check_rule(rule,"pod")
+                        if check:
+                            rules.append(rule)
+                        else:
+                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i)+" of Stateful Set "+name+": "+str(rule))
+
+            else:
+                if s["metadata"]["labels"]["overscaler"] == "true":
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] More overscaler labels are needed for "+name+". Autoscale off.")
+
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO POD] Stateful Set labels obtained correctly: "+str(name))
+        except:
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [ERROR] Error to get rules for %s. Is \"overscaler\" label true?" % (s["metadata"]["name"]))
+            rules=[]
             overscaler = "false"
-            name = s["metadata"]["name"]
             current_count = 0
             autoscaler_count = 0
             max_replicas = 0
             min_replicas = 0
-            try:
-                if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
-                s["metadata"]["labels"]["all-metrics"].lower() == "true":
-                    metrics = list(standard_pod_metrics.keys())
-                elif len(list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys())))) > 0:
-                    for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
-                        if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
-                            metrics.append(s["metadata"]["labels"][i])
-                        else:
-                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
-            except:
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Error to get metrics for %s" % (name))
-            try:
-                if "overscaler" and "max-replicas" and "min-replicas" and \
-                    "autoscaler-count" and "current-count" and "rescaling" in list(s["metadata"]["labels"].keys()) and  \
-                    s["metadata"]["labels"]["overscaler"] == "true":
 
-                    overscaler = s["metadata"]["labels"]["overscaler"]
-                    current_count = s["metadata"]["labels"]["current-count"]
-                    autoscaler_count = s["metadata"]["labels"]["autoscaler-count"]
-                    max_replicas = s["metadata"]["labels"]["max-replicas"]
-                    min_replicas = s["metadata"]["labels"]["min-replicas"]
+        statefulset_labels[name] = {'overscaler': overscaler, 'current-count': current_count,
+                                    'autoscaler-count': autoscaler_count, 'max-replicas': max_replicas,
+                                    'min-replicas': min_replicas, 'metrics': metrics, 'rules': rules}
 
-                    if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
-                        for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
-                            rule = s["metadata"]["labels"][i]
-                            check = check_rule(rule,"pod")
-                            if check:
-                                rules.append(rule)
-                            else:
-                                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] Wrong value for " + str(i)+" of Stateful Set "+name+": "+str(rule))
-
-                else:
-                    if s["metadata"]["labels"]["overscaler"] == "true":
-                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[ERROR] More overscaler labels are needed for "+name+". Autoscale off.")
-
-                statefulset_labels[name]= {'overscaler':overscaler,'current-count':current_count,'autoscaler-count':autoscaler_count,'max-replicas':max_replicas,'min-replicas':min_replicas, 'metrics': metrics,'rules':rules}
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + "[INFO POD] Stateful Set labels obtained correctly: "+str(name))
-            except:
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+"[ERROR] Error to get rules for %s. Is \"overscaler\" label true?" % (s["metadata"]["name"]))
     return statefulset_labels
 
 
@@ -342,24 +352,31 @@ def get_node_status(metrics):
     nodes = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json()
     node_status = {}
 
-    for i in nodes:
-        status={}
-        status['memory-allocatable'] = requests.get(
-            'http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/' + str(i) + '/metrics/memory/node_allocatable').json()["metrics"][0]["value"]
-        status['cpu-allocatable'] = requests.get(
-            'http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/' + str(i) + '/metrics/cpu/node_allocatable').json()["metrics"][0]["value"]
+    try:
+        for i in nodes:
+            status={}
+            try:
+                status['memory-allocatable'] = requests.get(
+                    'http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/' + str(i) + '/metrics/memory/node_allocatable').json()["metrics"][0]["value"]
+                status['cpu-allocatable'] = requests.get(
+                    'http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/' + str(i) + '/metrics/cpu/node_allocatable').json()["metrics"][0]["value"]
 
-        for j in metrics:
-            if j == "memory-usage-percent":
-                memory_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/memory/working_set').json()["metrics"]
-                status[j] = round(get_mean(memory_usage)/status['memory-allocatable']*100,2)
-            elif j == "cpu-usage-percent":
-                cpu_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/cpu/usage_rate').json()["metrics"]
-                status[j] = round(get_mean(cpu_usage)/status['cpu-allocatable']*100,2)
-            elif j in list(standard_node_metrics.keys()):
-                status[j] = get_mean(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/'+str(standard_node_metrics[j])).json()["metrics"])
-        node_status[i]=status
-
+                for j in metrics:
+                    if j == "memory-usage-percent":
+                        memory_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/memory/working_set').json()["metrics"]
+                        status[j] = round(get_mean(memory_usage)/status['memory-allocatable']*100,2)
+                    elif j == "cpu-usage-percent":
+                        cpu_usage = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/cpu/usage_rate').json()["metrics"]
+                        status[j] = round(get_mean(cpu_usage)/status['cpu-allocatable']*100,2)
+                    elif j in list(standard_node_metrics.keys()):
+                        status[j] = get_mean(requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/'+str(i)+'/metrics/'+str(standard_node_metrics[j])).json()["metrics"])
+            except:
+                print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [ERROR] Error to get status for node: %s." %(str(i)))
+                status={}
+            node_status[i]=status
+    except:
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Error to get status for cluster")
+        node_status={}
     return node_status
 
 
@@ -406,26 +423,33 @@ def get_pod_status(api,namespace,statefulset_labels,memory_allocatable, cpu_allo
     pod_status = {}
 
     if len(list(statefulset_labels.keys()))>0:
-        for i in range(len(pre_set.response['items'])):
-            node_name = pre_set.response['items'][i]['spec']['nodeName']
-            pod_name=str(pre_set.response['items'][i]['metadata']['name'])
-            if not node_name in pod_status.keys():
-                pod_status[node_name]={}
-            if pod_name.rsplit("-",1)[0] in list(statefulset_labels.keys()):
-                metrics= statefulset_labels[pod_name.rsplit("-",1)[0]]['metrics']
-                if len(metrics)>0:
-                    status={}
-                    for j in metrics:
-                        if j == "memory-usage-percent":
-                            memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/memory/working_set").json()["metrics"]
-                            status[j] = round(get_mean(memory_usage) / memory_allocatable * 100, 2)
-                        elif j == "cpu-usage-percent":
-                            cpu_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/cpu/usage_rate").json()["metrics"]
-                            status[j] = round(get_mean(cpu_usage) / cpu_allocatable * 100, 2)
-                        elif j in standard_pod_metrics.keys():
+        try:
+            for i in range(len(pre_set.response['items'])):
 
-                            status[j]=get_mean(requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/"+str(standard_pod_metrics[j])).json()["metrics"])
-                    pod_status[node_name][pod_name]=status
+                node_name = pre_set.response['items'][i]['spec']['nodeName']
+                pod_name=str(pre_set.response['items'][i]['metadata']['name'])
+                if not node_name in pod_status.keys():
+                    pod_status[node_name]={}
+                if pod_name.rsplit("-",1)[0] in list(statefulset_labels.keys()):
+                    metrics= statefulset_labels[pod_name.rsplit("-",1)[0]]['metrics']
+                    if len(metrics)>0:
+                        status={}
+                        for j in metrics:
+                            try:
+                                if j == "memory-usage-percent":
+                                    memory_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/memory/working_set").json()["metrics"]
+                                    status[j] = round(get_mean(memory_usage) / memory_allocatable * 100, 2)
+                                elif j == "cpu-usage-percent":
+                                    cpu_usage = requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/cpu/usage_rate").json()["metrics"]
+                                    status[j] = round(get_mean(cpu_usage) / cpu_allocatable * 100, 2)
+                                elif j in standard_pod_metrics.keys():
+                                    status[j]=get_mean(requests.get("http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/"+str(namespace)+"/pods/" + pod_name + "/metrics/"+str(standard_pod_metrics[j])).json()["metrics"])
+                            except:
+                                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Error to get status for: "+str(pod_name))
+                                status={}
+                        pod_status[node_name][pod_name]=status
+        except:
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Error to get status pods.")
 
     return pod_status
 
