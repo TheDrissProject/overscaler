@@ -2,7 +2,6 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from python import overtools as ot
 import subprocess
-import enchant
 import itertools
 import json
 
@@ -59,7 +58,7 @@ def test_get_mean():
     assert ot.get_mean({})==0
     assert ot.get_mean([{}])==0
     assert ot.get_mean([1])==0
-    assert ot.get_mean([k])==0
+    assert ot.get_mean(["k"])==0
     assert ot.get_mean([[]])==0
     assert ot.get_mean([{[{[{}]}]}])==0
     assert ot.get_mean([{'value':0}])==0
