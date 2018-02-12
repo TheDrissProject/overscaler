@@ -71,15 +71,15 @@ def test_get_mean():
     assert ot.get_mean([1])==0
     assert ot.get_mean(["k"])==0
     assert ot.get_mean([[]])==0
-    assert ot.get_mean({[[]]})==0
+    assert ot.get_mean({[]})==0
     assert ot.get_mean([{'value':0}])==0
     assert ot.get_mean([{'value':3},{'value':-5},{'value':"7"},{'value':"string"}])==5
     assert ot.get_mean([{'value':3},{'value':-5},{'value':{"lle":"7"}},{'value':"string"}])==3
 
 def test_get_cluster_labels():
     for i in range(16):
-        output=json.load(open('overscaler/Dockerfile/test/cluster_info_test/output_test'+str(int(i)+1)+'.json'))
-        output_test=ot.get_cluster_labels(json.load(open('overscaler/Dockerfile/test/cluster_info_test/info_test'+str(int(i)+1)+'.json')))
+        output=json.load(open('Dockerfile/test/cluster_info_test/output_test'+str(int(i)+1)+'.json'))
+        output_test=ot.get_cluster_labels(json.load(open('Dockerfile/test/cluster_info_test/info_test'+str(int(i)+1)+'.json')))
         print(i+1)
         assert output['autoscale'] == output_test[0]
         assert output['max_nodes'] == output_test[1]

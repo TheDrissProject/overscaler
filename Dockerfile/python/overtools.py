@@ -37,13 +37,13 @@ def get_args():
     if args.namespace==None:
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--namespace\" is None, changed to \"default\"")
         args.namespace="default"
-    if args.refresh_cluster==None or not args.refresh_cluster.isdigit():
+    if args.refresh_cluster==None or not str(args.refresh_cluster).isdigit():
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_cluster\" is None or not digit, changed to 600")
         args.refresh_cluster=600
-    if args.refresh_statefulset==None or not args.refresh_statefulset.isdigit():
+    if args.refresh_statefulset==None or not str(args.refresh_statefulset).isdigit():
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_statefulset\" is None or not digit, changed to 300")
         args.refresh_statefulset=300
-    if args.refresh_auth==None or not args.refresh_auth.isdigit():
+    if args.refresh_auth==None or not str(args.refresh_auth.isdigit()):
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_auth\" is None or not digit, changed to 600")
         args.refresh_auth=600
 
