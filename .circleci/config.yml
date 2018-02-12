@@ -59,6 +59,7 @@ jobs:
           command: |
             . venv/bin/activate
             pytest Dockerfile/test/main.py
+          no_output_timeout: 3600
 
       - store_artifacts:
           path: test-reports
