@@ -43,7 +43,7 @@ def get_args():
     if args.refresh_statefulset==None or not str(args.refresh_statefulset).isdigit():
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_statefulset\" is None or not digit, changed to 300")
         args.refresh_statefulset=300
-    if args.refresh_auth==None or not str(args.refresh_auth.isdigit()):
+    if args.refresh_auth==None or not str(args.refresh_auth).isdigit():
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_auth\" is None or not digit, changed to 600")
         args.refresh_auth=600
 

@@ -16,7 +16,7 @@ def test_arguments():
     else:
         error=1
     assert error==0
-    simbols = list("0123456789abcdefghijklmnopqrstuvwxyz!$%/()=?*^:.,@#~-_")
+    simbols = list("0123456789abcdefghijklmnopqrstuvwxyz!$%/()=?*^:.,@#~_")
     error=0
     for p in itertools.product(simbols, repeat=2):
         a=str(p).replace("(", "").replace(")", "").replace("\'", "").replace(", ", "")
@@ -71,7 +71,6 @@ def test_get_mean():
     assert ot.get_mean([1])==0
     assert ot.get_mean(["k"])==0
     assert ot.get_mean([[]])==0
-    assert ot.get_mean({[]})==0
     assert ot.get_mean([{'value':0}])==0
     assert ot.get_mean([{'value':3},{'value':-5},{'value':"7"},{'value':"string"}])==5
     assert ot.get_mean([{'value':3},{'value':-5},{'value':{"lle":"7"}},{'value':"string"}])==3
