@@ -1,0 +1,22 @@
+{
+ "input":{
+    "nodePools": [
+      {
+        "autoscaling": {
+          "enabled": true,
+          "maxNodeCount": 10,
+          "minNodeCount": 5
+          }
+      }
+      ],
+    "resourceLabels": {
+      "overscaler": "lelele"
+      }
+  },
+  "output":{
+    "autoscale":true,
+    "max_nodes": 10,
+    "min_nodes": 5,  
+    "overscaler": false
+  }
+}

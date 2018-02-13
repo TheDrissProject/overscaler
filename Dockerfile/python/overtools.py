@@ -166,37 +166,38 @@ def get_cluster_labels(cluster_info):
     min_nodes= 0
 
     try:
-        if "all-metrics" in list(cluster_info["resourceLabels"].keys()) and \
-            cluster_info["resourceLabels"]["all-metrics"].lower()=="true":
-            metrics=list(standard_node_metrics.keys())
-        elif len(list(filter(re.compile("metric-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
-            for i in list(filter(re.compile("metric-.*").search, list(cluster_info["resourceLabels"].keys()))):
-                if cluster_info["resourceLabels"][i] in list(standard_node_metrics.keys()):
-                    metrics.append(cluster_info["resourceLabels"][i])
-                else:
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i))
-
-        if "overscaler" in list(cluster_info["resourceLabels"].keys()) and cluster_info["resourceLabels"]["overscaler"] == "true":
-            overscaler = True
-
-            if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
-                for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
-                    rule = cluster_info["resourceLabels"][i]
-                    check=check_rule(rule,"node")
-                    if check:
-                        rules.append(rule)
-                    else:
-                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong built rule: " +str(rule))
-            else:
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Cluster labels without rules or with rules incorrectly created.")
-
-
-        if  cluster_info["nodePools"][0]["autoscaling"]["enabled"]==True \
+        if isinstance(cluster_info["nodePools"][0]["autoscaling"]["enabled"],bool) \
             and cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"]>0 \
             and cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"]>0:
             autoscale = cluster_info["nodePools"][0]["autoscaling"]["enabled"]
             max_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"])
             min_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"])
+
+            if "all-metrics" in list(cluster_info["resourceLabels"].keys()) and \
+                cluster_info["resourceLabels"]["all-metrics"].lower()=="true":
+                metrics=list(standard_node_metrics.keys())
+            elif len(list(filter(re.compile("metric-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
+                for i in list(filter(re.compile("metric-.*").search, list(cluster_info["resourceLabels"].keys()))):
+                    if cluster_info["resourceLabels"][i] in list(standard_node_metrics.keys()):
+                        metrics.append(cluster_info["resourceLabels"][i])
+                    else:
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i))
+
+            if "overscaler" in list(cluster_info["resourceLabels"].keys())\
+                and cluster_info["resourceLabels"]["overscaler"] == "true":
+                overscaler = True
+
+                if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
+                    for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
+                        rule = cluster_info["resourceLabels"][i]
+                        check=check_rule(rule,"node")
+                        if check:
+                            rules.append(rule)
+                        else:
+                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong built rule: " +str(rule))
+                else:
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Cluster labels without rules or with rules incorrectly created.")
+
     except:
         metrics = []
         rules = []
@@ -349,10 +350,12 @@ def get_node_status(metrics):
     .....
     }
     """
-    nodes = requests.get('http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json()
-    node_status = {}
+
 
     try:
+        nodes = requests.get(
+            'http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/').json()
+        node_status = {}
         for i in nodes:
             status={}
             try:
@@ -481,7 +484,9 @@ def actions(api,namespace, pod_status, statefulset_labels, max_nodes):
         for j in list(pod_status[i].keys()):
 
             statefulset_name=j.rsplit("-",1)[0]
-            if statefulset_name in statefulset_labels.keys() and statefulset_labels[statefulset_name]['overscaler']=='true':
+            if statefulset_name in statefulset_labels.keys() and \
+                "overscaler" in statefulset_labels[statefulset_name].keys() and\
+                statefulset_labels[statefulset_name]['overscaler']=='true':
 
                 pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=statefulset_name)
                 if int(pre_set.labels["current-count"])==0 and pre_set.labels["rescaling"]=="false":
