@@ -28,6 +28,7 @@ def main():
     autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels(cluster_info)
 
     statefulset_info = pykube.StatefulSet.objects(api).filter(namespace=args.namespace).response
+    print(statefulset_info)
     statefulset_labels=ot.get_statefulset_labels(statefulset_info)
     current_nodes=ot.get_num_nodes()
 
@@ -49,6 +50,7 @@ def main():
         if (t1-t_auth).seconds>int(args.refresh_auth):
             ot.cluster_auth(args.zone, args.project)
             api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
+            ot.start_proxy()
             t_auth = datetime.datetime.now()
 
         #Is it necessary to refresh node information?

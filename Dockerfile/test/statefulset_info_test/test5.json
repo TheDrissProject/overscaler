@@ -1,0 +1,41 @@
+{
+  "input": {
+    "items": [
+      {
+        "metadata": {
+          "name": "name",
+          "labels": {
+            "rule-4": "memory-usage-percent_lower_10_reduce",
+            "min-replicas": "1",
+            "autoscaler-count": "3",
+            "rule-3": "cpu-usage-percent_lower_10_reduce",
+            "max-replicas": "5",
+            "all-metrics": "true",
+            "current-count": "0",
+            "rule-2": "memory-usage-percent_greater_90_scale",
+            "overscaler": "true",
+            "rule-1": "cpu-usage-ercent_greater_90_scale",
+            "rescaling": "false"
+          }
+        }
+      }
+    ]
+  },
+  "output": [{
+    "empty":false,
+    "name": "name",
+    "overscaler": true,
+    "current-count": 0,
+    "autoscaler-count": 3,
+    "max-replicas": 5,
+    "min-replicas": 1,
+    "rules": [
+      "memory-usage-percent_greater_90_scale",
+      "cpu-usage-percent_lower_10_reduce",
+      "memory-usage-percent_lower_10_reduce"
+    ]
+  }
+]
+}
+
+

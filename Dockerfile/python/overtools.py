@@ -96,14 +96,14 @@ def check_rule(rule,type):
     if type=="pod":
         if len(rule)==4 and rule[0] in list(standard_pod_metrics.keys())\
             and (rule[1]=="greater" or rule[1]=="lower") and rule[2].isdigit()\
-            and (rule[3]=="scale" or rule[3]=="reduce" or\
-            len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
+            and (rule[3]=="scale" or rule[3]=="reduce") :
+                 # or len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
                 check=True
     if type=="node":
         if len(rule)==4 and rule[0] in list(standard_node_metrics.keys())\
             and (rule[1]=="greater" or rule[1]=="lower") and rule[2].isdigit()\
-            and (rule[3]=="scale" or rule[3]=="reduce" or\
-            len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
+            and (rule[3]=="scale" or rule[3]=="reduce") :
+            #len(list(filter(re.compile("and-.*").search, list(rule[3])))) > 0):
                 check=True
     return check
 
@@ -167,8 +167,8 @@ def get_cluster_labels(cluster_info):
 
     try:
         if isinstance(cluster_info["nodePools"][0]["autoscaling"]["enabled"],bool) \
-            and cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"]>0 \
-            and cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"]>0:
+            and cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"]>0 \
+            and cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"]>=cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"]:
             autoscale = cluster_info["nodePools"][0]["autoscaling"]["enabled"]
             max_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["maxNodeCount"])
             min_nodes = int(cluster_info["nodePools"][0]["autoscaling"]["minNodeCount"])
@@ -248,65 +248,72 @@ def get_statefulset_labels(statefulset_info):
     """
 
     statefulset_labels = {}
-    for s in statefulset_info['items']:
-        metrics = []
-        rules = []
-        overscaler = "false"
-        name = s["metadata"]["name"]
-        current_count = 0
-        autoscaler_count = 0
-        max_replicas = 0
-        min_replicas = 0
-        try:
-            if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
-            s["metadata"]["labels"]["all-metrics"].lower() == "true":
-                metrics = list(standard_pod_metrics.keys())
-            elif len(list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys())))) > 0:
-                for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
-                    if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
-                        metrics.append(s["metadata"]["labels"][i])
-                    else:
-                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
-        except:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Error to get metrics for %s" % (name))
+    try:
+        for s in statefulset_info['items']:
             metrics = []
-        try:
-            if "overscaler" and "max-replicas" and "min-replicas" and \
-                "autoscaler-count" and "current-count" and "rescaling" in list(s["metadata"]["labels"].keys()) and  \
-                s["metadata"]["labels"]["overscaler"] == "true":
-
-                overscaler = s["metadata"]["labels"]["overscaler"]
-                current_count = s["metadata"]["labels"]["current-count"]
-                autoscaler_count = s["metadata"]["labels"]["autoscaler-count"]
-                max_replicas = s["metadata"]["labels"]["max-replicas"]
-                min_replicas = s["metadata"]["labels"]["min-replicas"]
-
-                if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
-                    for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
-                        rule = s["metadata"]["labels"][i]
-                        check = check_rule(rule,"pod")
-                        if check:
-                            rules.append(rule)
-                        else:
-                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i)+" of Stateful Set "+name+": "+str(rule))
-
-            else:
-                if s["metadata"]["labels"]["overscaler"] == "true":
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] More overscaler labels are needed for "+name+". Autoscale off.")
-
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO POD] Stateful Set labels obtained correctly: "+str(name))
-        except:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [ERROR] Error to get rules for %s. Is \"overscaler\" label true?" % (s["metadata"]["name"]))
-            rules=[]
-            overscaler = "false"
+            rules = []
+            overscaler = False
             current_count = 0
             autoscaler_count = 0
             max_replicas = 0
             min_replicas = 0
+            try:
+                name = s["metadata"]["name"]
+                try:
+                    if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
+                    s["metadata"]["labels"]["all-metrics"].lower() == "true":
+                        metrics = list(standard_pod_metrics.keys())
+                    elif len(list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys())))) > 0:
+                        for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
+                            if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
+                                metrics.append(s["metadata"]["labels"][i])
+                            else:
+                                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
+                except:
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Error to get metrics for %s" % (name))
+                    metrics = []
 
-        statefulset_labels[name] = {'overscaler': overscaler, 'current-count': current_count,
-                                    'autoscaler-count': autoscaler_count, 'max-replicas': max_replicas,
-                                    'min-replicas': min_replicas, 'metrics': metrics, 'rules': rules}
+                try:
+                    if s["metadata"]["labels"]["overscaler"] == "true" and int(s["metadata"]["labels"]["min-replicas"])>0  \
+                        and int(s["metadata"]["labels"]["max-replicas"]) >= int(s["metadata"]["labels"]["min-replicas"]) \
+                        and int(s["metadata"]["labels"]["autoscaler-count"])>=0 and int(s["metadata"]["labels"]["current-count"])>=0  \
+                        and "rescaling" in list(s["metadata"]["labels"].keys()):
+                        overscaler = True
+                        current_count = int(s["metadata"]["labels"]["current-count"])
+                        autoscaler_count = int(s["metadata"]["labels"]["autoscaler-count"])
+                        max_replicas = int(s["metadata"]["labels"]["max-replicas"])
+                        min_replicas = int(s["metadata"]["labels"]["min-replicas"])
+
+                        if len(list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys())))) > 0:
+                            for i in list(filter(re.compile("rule-.*").search, list(s["metadata"]["labels"].keys()))):
+                                rule = s["metadata"]["labels"][i]
+                                check = check_rule(rule,"pod")
+                                if check:
+                                    rules.append(rule)
+                                else:
+                                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i)+" of Stateful Set "+name+": "+str(rule))
+
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO POD] Stateful Set labels obtained correctly: " + str(name))
+                    else:
+                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for overscaler labels of Stateful Set "+name+". Autoscale off.")
+                except:
+                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [ERROR] Error to get labels for "+name+". Are all overscaler labels correctly written?")
+                    rules=[]
+                    overscaler = False
+                    current_count = 0
+                    autoscaler_count = 0
+                    max_replicas = 0
+                    min_replicas = 0
+
+                statefulset_labels[name] = {'overscaler': overscaler, 'current-count': current_count,
+                                            'autoscaler-count': autoscaler_count, 'max-replicas': max_replicas,
+                                            'min-replicas': min_replicas, 'metrics': metrics, 'rules': rules}
+            except:
+                print(strftime("%Y-%m-%d %H:%M:%S",
+                               gmtime()) + " [ERROR] Stateful Set without name")
+    except:
+        print(strftime("%Y-%m-%d %H:%M:%S",
+                       gmtime()) + " [ERROR] Stateful Set info empty")
 
     return statefulset_labels
 

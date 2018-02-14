@@ -10,14 +10,17 @@
       }
       ],
     "resourceLabels": {
-      "overscaler": ""
+      "overscaler": "",
+      "all-metrics": "true"
       }
   },
   "output":{
     "autoscale":true,
     "max_nodes": 10,
     "min_nodes": 5,  
-    "overscaler": false
+    "overscaler": false,
+    "metrics-all":true,
+    "metrics":[]
   }
 }
 

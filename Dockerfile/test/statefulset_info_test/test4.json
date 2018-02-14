@@ -1,0 +1,26 @@
+{
+  "input": {
+    "items": [
+      {
+        "metadata": {
+          "name": "name",
+          "labels": {
+          }
+        }
+      }
+    ]
+  },
+  "output": [{
+    "empty":false,
+    "name": "name",
+    "overscaler": false,
+    "current-count": 0,
+    "autoscaler-count": 0,
+    "max-replicas": 0,
+    "min-replicas": 0,
+    "rules": [ ]
+  }
+  ]
+}
+
+
