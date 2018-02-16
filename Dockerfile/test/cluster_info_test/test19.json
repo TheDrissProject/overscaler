@@ -11,7 +11,8 @@
       ],
     "resourceLabels": {
       "overscaler": "",
-      "all-metrics": "true"
+      "metric-1": "cpu-usage-percent",
+      "metric-2": "memory-usage-percent"
       }
   },
   "output":{
@@ -19,8 +20,8 @@
     "max_nodes": 10,
     "min_nodes": 5,  
     "overscaler": false,
-    "all-metrics":true,
-    "metrics":[]
+    "all-metrics":false,
+    "metrics":["cpu-usage-percent","memory-usage-percent"]
   }
 }
 

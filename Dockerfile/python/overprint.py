@@ -2,7 +2,7 @@ from time import gmtime, strftime
 
 # Print Functions.
 
-def print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,overscaler,metrics,rules):
+def print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,overscaler,metrics):
     """
     Prints Cluster information by console.
 
@@ -20,16 +20,16 @@ def print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,overscaler,m
     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO CLUSTER] Maximum possible nodes: " + str(max_nodes))
     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO CLUSTER] Minimum possible nodes: " + str(min_nodes))
     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO CLUSTER] Nodes currently running: " + str(current_nodes))
-    if len(metrics) > 0:
+    if metrics:
         for i in range(len(metrics)):
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO CLUSTER METRICS] Metric " + str(i + 1) + ": " + str(
                 metrics[i]))
     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO CLUSTER] Overscaler is " + str(overscaler) + " in this cluster")
-    if overscaler == "true":
-        if len(rules) > 0:
-            for i in range(len(rules)):
-                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO CLUSTER RULES] Rule " + str(i + 1) + ": " + str(
-                    rules[i]).replace("_", " "))
+    # if overscaler == True:
+    #     if rules:
+    #         for i in range(len(rules)):
+    #             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [INFO CLUSTER RULES] Rule " + str(i + 1) + ": " + str(
+    #                 rules[i]).replace("_", " "))
 
 
 def print_statefulset_info(statefulset_labels):

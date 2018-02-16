@@ -23,6 +23,7 @@
   },
   "output": [{
     "empty":false,
+    "all-metrics": true,
     "name": "name",
     "overscaler": true,
     "current-count": 0,

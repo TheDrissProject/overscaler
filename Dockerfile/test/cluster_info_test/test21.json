@@ -10,17 +10,17 @@
       }
       ],
     "resourceLabels": {
-      "overscaler": "",
-      "all-metrics": "true"
+      "overscaler": "true",
+      "metric-a": "cpu-usage-percent",
+      "metric-1": "memo-usage-percent"
       }
   },
   "output":{
     "autoscale":true,
     "max_nodes": 10,
     "min_nodes": 5,  
-    "overscaler": false,
-    "all-metrics":true,
-    "metrics":[]
+    "overscaler": true,
+    "all-metrics":false,
+    "metrics":["cpu-usage-percent"]
   }
 }
-

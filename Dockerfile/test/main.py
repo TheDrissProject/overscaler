@@ -2,19 +2,14 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from python import overtools as ot
-import subprocess
-import itertools
 import json
 
 
 def test_check_rule():
     standard_node_metrics = json.load(open('/overscaler/python/node_metrics.json'))
     standard_pod_metrics = json.load(open('/overscaler/python/pod_metrics.json'))
-    type_standart=["pod","node"]
 
-
-
-    for i in type_standart:
+    for i in ["pod","node"]:
 
         assert ot.check_rule("", i) == False
         assert ot.check_rule("a_a_a_a", i) == False
@@ -62,17 +57,18 @@ def test_get_cluster_labels():
             assert test_json['output']['max_nodes'] == output_test[1]
             assert test_json['output']['min_nodes'] == output_test[2]
             assert test_json['output']['overscaler'] == output_test[3]
-            if test_json['output']['metrics-all']:
+            if test_json['output']['all-metrics']:
                 for i in list(standard_node_metrics.keys()):
                     assert i in output_test[4]
-            elif len(test_json['output']['metrics'])>0:
-                for i in list(test_json['output']['metrics']):
+            elif test_json['output']['metrics']:
+                for i in test_json['output']['metrics']:
                     assert i in output_test[4]
             else:
                 assert len(output_test[4])==0
 
-def test_statefulset_cluster_labels():
+def test_get_statefulset_labels():
     lstDir = os.walk("Dockerfile/test/statefulset_info_test/")
+    standard_pod_metrics = json.load(open('/overscaler/python/pod_metrics.json'))
     for root, dirs, files in lstDir:
         for file in files:
             print(file)
@@ -89,6 +85,15 @@ def test_statefulset_cluster_labels():
                     assert i['min-replicas'] == output_test[i['name']]['min-replicas']
                     for j in i['rules']:
                         assert j in output_test[i['name']]['rules']
+
+
+                    if i['all-metrics']:
+                        for j in list(standard_pod_metrics.keys()):
+                            assert j in output_test[i['name']]['metrics']
+                    elif i['metrics']:
+                        print(i['metrics'])
+                        for j in output_test[i['name']]['metrics']:
+                            assert j in output_test[i['name']]['metrics']
 
 
 

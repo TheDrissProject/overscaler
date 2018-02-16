@@ -10,7 +10,7 @@ create() {
 
 delete () {
     echo "Deleting statefulsets with files..."
-     kubectl delete -f ubuntu-test/
+     kubectl delete -f ./ubuntu-test/
 }
 
 

@@ -28,14 +28,13 @@ def main():
     autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels(cluster_info)
 
     statefulset_info = pykube.StatefulSet.objects(api).filter(namespace=args.namespace).response
-    print(statefulset_info)
     statefulset_labels=ot.get_statefulset_labels(statefulset_info)
     current_nodes=ot.get_num_nodes()
 
     if autoscale==False: max_nodes, min_nodes =current_nodes, current_nodes
 
     #Printing information by console.
-    op.print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,overscaler,metrics,rules)
+    op.print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,overscaler,metrics)
     op.print_statefulset_info(statefulset_labels)
 
     #Counters for refreshing.
@@ -63,7 +62,7 @@ def main():
             autoscale, max_nodes, min_nodes, overscaler, metrics, rules = ot.get_cluster_labels(output)
             current_nodes = ot.get_num_nodes()
             if autoscale == False: max_nodes, min_nodes =current_nodes, current_nodes
-            op.print_cluster_info(autoscale, current_nodes, max_nodes, min_nodes, overscaler, metrics, rules)
+            op.print_cluster_info(autoscale, current_nodes, max_nodes, min_nodes, overscaler, metrics)
             t_nodes = datetime.datetime.now()
 
         #Is it necessary to refresh stateful set information?
@@ -80,13 +79,14 @@ def main():
         op.print_node_status(node_status)
 
         #Getting pod status, printing and making decisions.
-        pod_status=ot.get_pod_status(api,args.namespace,statefulset_labels,node_status[list(node_status.keys())[0]]['memory-allocatable'],node_status[list(node_status.keys())[0]]['cpu-allocatable'])
-        if len(list(pod_status.keys())) > 0:
-            op.print_pod_status(pod_status)
-            ot.actions(api,args.namespace, pod_status, statefulset_labels, max_nodes)
+        if list(node_status.keys()):
+            pod_status=ot.get_pod_status(api,args.namespace,statefulset_labels,node_status[list(node_status.keys())[0]]['memory-allocatable'],node_status[list(node_status.keys())[0]]['cpu-allocatable'])
+            if len(list(pod_status.keys())) > 0:
+                op.print_pod_status(pod_status)
+                ot.actions(api,args.namespace, pod_status, statefulset_labels, max_nodes)
 
-            #Updating "current-count" label for all stateful set
-            ot.update_current_count(api,args.namespace, statefulset_labels)
+                #Updating "current-count" label for all stateful set
+                ot.update_current_count(api,args.namespace, statefulset_labels)
 
 if __name__ == '__main__':
     main()

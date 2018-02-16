@@ -39,13 +39,13 @@ def get_args():
         args.namespace="default"
     if args.refresh_cluster==None or not str(args.refresh_cluster).isdigit():
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_cluster\" is None or not digit, changed to 600")
-        args.refresh_cluster=600
+        args.refresh_cluster=60
     if args.refresh_statefulset==None or not str(args.refresh_statefulset).isdigit():
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_statefulset\" is None or not digit, changed to 300")
-        args.refresh_statefulset=300
+        args.refresh_statefulset=30
     if args.refresh_auth==None or not str(args.refresh_auth).isdigit():
         # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [Error] \"--refresh_auth\" is None or not digit, changed to 600")
-        args.refresh_auth=600
+        args.refresh_auth=60
 
     return args
 
@@ -187,16 +187,16 @@ def get_cluster_labels(cluster_info):
                 and cluster_info["resourceLabels"]["overscaler"] == "true":
                 overscaler = True
 
-                if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
-                    for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
-                        rule = cluster_info["resourceLabels"][i]
-                        check=check_rule(rule,"node")
-                        if check:
-                            rules.append(rule)
-                        else:
-                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong built rule: " +str(rule))
-                else:
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Cluster labels without rules or with rules incorrectly created.")
+                # if len(list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys())))) > 0:
+                #     for i in list(filter(re.compile("rule-.*").search, list(cluster_info["resourceLabels"].keys()))):
+                #         rule = cluster_info["resourceLabels"][i]
+                #         check=check_rule(rule,"node")
+                #         if check:
+                #             rules.append(rule)
+                #         else:
+                #             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong built rule: " +str(rule))
+                # else:
+                #     print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Cluster labels without rules or with rules incorrectly created.")
 
     except:
         metrics = []
@@ -259,25 +259,22 @@ def get_statefulset_labels(statefulset_info):
             min_replicas = 0
             try:
                 name = s["metadata"]["name"]
-                try:
-                    if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
-                    s["metadata"]["labels"]["all-metrics"].lower() == "true":
-                        metrics = list(standard_pod_metrics.keys())
-                    elif len(list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys())))) > 0:
-                        for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
-                            if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
-                                metrics.append(s["metadata"]["labels"][i])
-                            else:
-                                print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
-                except:
-                    print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Error to get metrics for %s" % (name))
-                    metrics = []
+
+                if "all-metrics" in list(s["metadata"]["labels"].keys()) and \
+                s["metadata"]["labels"]["all-metrics"].lower() == "true":
+                    metrics = list(standard_pod_metrics.keys())
+                elif list(filter(re.compile("metric-.*").search,list(s["metadata"]["labels"].keys()))):
+                    for i in list(filter(re.compile("metric-.*").search, list(s["metadata"]["labels"].keys()))):
+                        if s["metadata"]["labels"][i] in list(standard_pod_metrics.keys()):
+                            metrics.append(s["metadata"]["labels"][i])
+                        else:
+                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ERROR] Wrong value for " + str(i) +" of Stateful Set "+str(name))
 
                 try:
                     if s["metadata"]["labels"]["overscaler"] == "true" and int(s["metadata"]["labels"]["min-replicas"])>0  \
                         and int(s["metadata"]["labels"]["max-replicas"]) >= int(s["metadata"]["labels"]["min-replicas"]) \
                         and int(s["metadata"]["labels"]["autoscaler-count"])>=0 and int(s["metadata"]["labels"]["current-count"])>=0  \
-                        and "rescaling" in list(s["metadata"]["labels"].keys()):
+                        and s["metadata"]["labels"]["rescaling"] in ["true","false"]:
                         overscaler = True
                         current_count = int(s["metadata"]["labels"]["current-count"])
                         autoscaler_count = int(s["metadata"]["labels"]["autoscaler-count"])
@@ -305,7 +302,8 @@ def get_statefulset_labels(statefulset_info):
                     max_replicas = 0
                     min_replicas = 0
 
-                statefulset_labels[name] = {'overscaler': overscaler, 'current-count': current_count,
+                if overscaler==True or metrics:
+                    statefulset_labels[name] = {'overscaler': overscaler, 'current-count': current_count,
                                             'autoscaler-count': autoscaler_count, 'max-replicas': max_replicas,
                                             'min-replicas': min_replicas, 'metrics': metrics, 'rules': rules}
             except:
@@ -489,40 +487,36 @@ def actions(api,namespace, pod_status, statefulset_labels, max_nodes):
 
     for i in list(pod_status.keys()):
         for j in list(pod_status[i].keys()):
-
             statefulset_name=j.rsplit("-",1)[0]
             if statefulset_name in statefulset_labels.keys() and \
-                "overscaler" in statefulset_labels[statefulset_name].keys() and\
-                statefulset_labels[statefulset_name]['overscaler']=='true':
-
+                statefulset_labels[statefulset_name]['overscaler']==True:
                 pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=statefulset_name)
                 if int(pre_set.labels["current-count"])==0 and pre_set.labels["rescaling"]=="false":
-
-                    if len(statefulset_labels[statefulset_name]['rules']) > 0:
+                    if statefulset_labels[statefulset_name]['rules']:
                         for k in statefulset_labels[statefulset_name]['rules']:
+                            if k.split("_")[0] in list(pod_status[i][j].keys()):
+                                action=None
+                                if k.split("_")[1] == "greater":
+                                    if float(pod_status[i][j][k.split("_")[0]]) >= float(k.split("_")[2]):
+                                        if k.split("_")[3] == "scale":
+                                            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Is necessary to scale " + j + " for rule: " + k.replace("_", " "))
+                                            action="scale"
+                                        if k.split("_")[3] == "reduce":
+                                            print(strftime("%Y-%m-%d %H:%M:%S",
+                                               gmtime()) + " [ACTION] Is necessary to reduce " + j + " for rule: " + k.replace("_", " "))
+                                            action="reduce"
+                                if k.split("_")[1] == "lower":
+                                    if float(pod_status[i][j][k.split("_")[0]]) <= float(k.split("_")[2]):
+                                        if k.split("_")[3] == "scale":
+                                            print(strftime("%Y-%m-%d %H:%M:%S",
+                                               gmtime()) + " [ACTION] Is necessary to scale " + j + " for rule: " + k.replace("_", " "))
+                                            action = "scale"
+                                        if k.split("_")[3] == "reduce":
+                                            print(strftime("%Y-%m-%d %H:%M:%S",
+                                               gmtime()) + " [ACTION] Is necessary to reduce " + j + " for rule: " + k.replace("_", " "))
+                                            action = "reduce"
 
-                            action=None
-                            if k.split("_")[1] == "greater":
-                                if float(pod_status[i][j][k.split("_")[0]]) >= float(k.split("_")[2]):
-                                    if k.split("_")[3] == "scale":
-                                        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " [ACTION] Is necessary to scale " + j + " for rule: " + k.replace("_", " "))
-                                        action="scale"
-                                    if k.split("_")[3] == "reduce":
-                                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                           gmtime()) + " [ACTION] Is necessary to reduce " + j + " for rule: " + k.replace("_", " "))
-                                        action="reduce"
-                            if k.split("_")[1] == "lower":
-                                if float(pod_status[i][j][k.split("_")[0]]) <= float(k.split("_")[2]):
-                                    if k.split("_")[3] == "scale":
-                                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                           gmtime()) + " [ACTION] Is necessary to scale " + j + " for rule: " + k.replace("_", " "))
-                                        action = "scale"
-                                    if k.split("_")[3] == "reduce":
-                                        print(strftime("%Y-%m-%d %H:%M:%S",
-                                           gmtime()) + " [ACTION] Is necessary to reduce " + j + " for rule: " + k.replace("_", " "))
-                                        action = "reduce"
-
-                            rescale(api, namespace, statefulset_name, action,max_nodes)
+                                rescale(api, namespace, statefulset_name, action,max_nodes)
 
 
 
@@ -579,10 +573,10 @@ def update_current_count(api,namespace,statefulsets_labels):
     """
 
     for i in statefulsets_labels.keys():
-        if statefulsets_labels[i]['overscaler']=='true':
+        if statefulsets_labels[i]['overscaler']==True:
             pre_set = pykube.StatefulSet.objects(api).filter(namespace=namespace,
                                                              field_selector={"metadata.name": i})
-            if pre_set.response["items"][0]["status"]["currentReplicas"]==pre_set.response["items"][0]["status"]["replicas"] and pre_set.response["items"][0]['metadata']['labels']['rescaling']=="true":
+            if pre_set.response["items"][0]["status"]["currentReplicas"]==pre_set.response["items"][0]["status"]["replicas"] and pre_set.response["items"][0]['metadata']['labels']['rescaling']!="false":
                 new_statefulset = pykube.StatefulSet.objects(api).filter(namespace=namespace).get(name=i)
                 new_statefulset.labels["rescaling"] = "false"
                 new_statefulset.labels["current-count"] = new_statefulset.labels["autoscaler-count"]

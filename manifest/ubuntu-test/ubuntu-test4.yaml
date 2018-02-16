@@ -29,7 +29,7 @@ spec:
         metric-1: "cpu-usage-percent"
         metric-2: "memory-usage-percent"
         metric-3: "network-rx-rate"
-        rule-1: "cpu-usage-percent_greater_00000_reduce"
+        rule-1: "cpu-usage-percent_greater_0_reduce"
         current-count : "0"
         autoscaler-count : "2"
         min-replicas : "1"

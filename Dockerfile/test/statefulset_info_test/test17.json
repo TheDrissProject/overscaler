@@ -5,16 +5,14 @@
         "metadata": {
           "name": "name",
           "labels": {
-            "rule-4": "memory-usage-percent_lower_10_reduce",
+            "metric-1": "memory-usage-percent",
             "min-replicas": "1",
             "autoscaler-count": "3",
-            "rule-3": "cpu-usage-percent_lower_10_reduce",
+            "metric-2": "cpu-usage-percent",
             "max-replicas": "5",
-            "all-metrics": "true",
             "current-count": "0",
-            "rule-2": "memory-usage-percent_greater_90_scale",
-            "overscaler": "true",
-            "rule-1": "cpu-usage-percent_greater_90_scale"
+            "overscaler": "false",
+            "rescaling": false
           }
         }
       }
@@ -22,17 +20,17 @@
   },
   "output": [{
     "empty":false,
-    "all-metrics": true,
     "name": "name",
+    "all-metrics":false,
     "overscaler": false,
     "current-count": 0,
     "autoscaler-count": 0,
     "max-replicas": 0,
     "min-replicas": 0,
-    "rules": [ ]
+    "rules": [
+    ],
+    "metrics":["memory-usage-percent","cpu-usage-percent"]
   }
   ]
-  }
-
-
+}
 

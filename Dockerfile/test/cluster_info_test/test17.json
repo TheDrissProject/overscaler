@@ -19,7 +19,7 @@
     "max_nodes": 10,
     "min_nodes": 5,  
     "overscaler": false,
-    "metrics-all":true,
+    "all-metrics":true,
     "metrics":[]
   }
 }

@@ -10,11 +10,11 @@
             "autoscaler-count": "3",
             "rule-3": "cpu-usage-percent_lower_10_reduce",
             "max-replicas": "5",
-            "all-metrics": "true",
             "current-count": "0",
             "rule-2": "memory-usage-percent_greater_90_scale",
             "overscaler": "true",
-            "rule-1": "cpu-usage-percent_greater_90_scale",
+            "metric-2": "cpu-usage-percent",
+            "metric-1": "memory-usage-percent",
             "rescaling": "false"
           }
         }
@@ -22,8 +22,8 @@
     ]
   },
   "output": [{
-    "all-metrics":true,
     "empty":false,
+    "all-metrics": false,
     "name": "name",
     "overscaler": true,
     "current-count": 0,
@@ -31,13 +31,12 @@
     "max-replicas": 5,
     "min-replicas": 1,
     "rules": [
-      "cpu-usage-percent_greater_90_scale",
       "memory-usage-percent_greater_90_scale",
       "cpu-usage-percent_lower_10_reduce",
       "memory-usage-percent_lower_10_reduce"
-    ]
+    ],
+    "metrics":["memory-usage-percent","cpu-usage-percent"]
   }
-  ]
+]
 }
-
 
