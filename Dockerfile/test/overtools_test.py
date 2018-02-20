@@ -6,6 +6,11 @@ import json
 
 
 def test_check_rule():
+    """
+    Unit test for "check_rule()"
+
+    """
+
     standard_node_metrics = json.load(open('/overscaler/python/node_metrics.json'))
     standard_pod_metrics = json.load(open('/overscaler/python/pod_metrics.json'))
 
@@ -21,7 +26,7 @@ def test_check_rule():
         else:
             standard_metrics = standard_node_metrics
 
-        for j in standard_metrics.keys():
+        for j in standard_metrics:
             assert ot.check_rule(j,i) == False
             assert ot.check_rule(j+"_lower",i) == False
             assert ot.check_rule(j+"_lower_100",i) == False
@@ -36,37 +41,56 @@ def test_check_rule():
 
 
 def test_get_mean():
+    """
+    Unit test for "get_mean()"
+
+    """
+
     assert ot.get_mean({})==0
     assert ot.get_mean([{}])==0
     assert ot.get_mean([1])==0
     assert ot.get_mean(["k"])==0
     assert ot.get_mean([[]])==0
     assert ot.get_mean([{'value':0}])==0
-    assert ot.get_mean([{'value':3},{'value':-5},{'value':"7"},{'value':"string"}])==5
-    assert ot.get_mean([{'value':3},{'value':-5},{'value':{"lle":"7"}},{'value':"string"}])==3
+    assert ot.get_mean([{'value':3},{'value':7}])==5
+    assert ot.get_mean([{'value':3},{'value':7},{'value':-5}])==5
+    assert ot.get_mean([{'value':3},{'value':"7"}])==5
+    assert ot.get_mean([{'valu': 4}, {'value': -5}, {'value': "0"}]) == 0
+    assert ot.get_mean([{'value':{"a": ''}},"", {'value': "7"}]) == 7
+    assert ot.get_mean([{'value':4},{'value':-5},{'value':"0"}])==2
+    assert ot.get_mean([{'value':''},{'value':"string"},{'value':"7"}])==7
+
+
 
 def test_get_cluster_labels():
+    """
+    Unit test for "get_cluster_labels()"
+    """
+
     standard_node_metrics = json.load(open('/overscaler/python/node_metrics.json'))
     lstDir = os.walk("Dockerfile/test/cluster_info_test/")
     for root, dirs, files in lstDir:
         for file in files:
-            test_json = json.load(open(root+file))
             print(file)
+            test_json = json.load(open(root+file))
             output_test = ot.get_cluster_labels(test_json['input'])
             assert test_json['output']['autoscale'] == output_test[0]
             assert test_json['output']['max_nodes'] == output_test[1]
             assert test_json['output']['min_nodes'] == output_test[2]
-            assert test_json['output']['overscaler'] == output_test[3]
             if test_json['output']['all-metrics']:
-                for i in list(standard_node_metrics.keys()):
-                    assert i in output_test[4]
+                for i in standard_node_metrics:
+                    assert i in output_test[3]
             elif test_json['output']['metrics']:
                 for i in test_json['output']['metrics']:
-                    assert i in output_test[4]
+                    assert i in output_test[3]
             else:
-                assert len(output_test[4])==0
+                assert len(output_test[3])==0
 
 def test_get_statefulset_labels():
+    """
+    Unit test for "get_statefulset_labels()"
+    """
+
     lstDir = os.walk("Dockerfile/test/statefulset_info_test/")
     standard_pod_metrics = json.load(open('/overscaler/python/pod_metrics.json'))
     for root, dirs, files in lstDir:
@@ -94,6 +118,44 @@ def test_get_statefulset_labels():
                         print(i['metrics'])
                         for j in output_test[i['name']]['metrics']:
                             assert j in output_test[i['name']]['metrics']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

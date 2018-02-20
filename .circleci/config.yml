@@ -58,8 +58,8 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            pytest Dockerfile/test/main.py
-          no_output_timeout: 3600
+            pytest Dockerfile/test/overtools_test.py -vvv -s
+            pytest Dockerfile/test/overprint_test.py -vvv -s
 
       - store_artifacts:
           path: test-reports

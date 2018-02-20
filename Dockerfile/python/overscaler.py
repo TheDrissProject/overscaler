@@ -14,27 +14,27 @@ def main():
     args=ot.get_args()
 
     #Authentication in gcloud and kubernetes Api.
-    ot.cluster_auth(args.zone,args.project)
     api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
 
     #Starting kubernetes proxy.
     ot.start_proxy()
 
-    #Getting information about cluster and stateful sets.
+    #Getting information about cluster.
 
-    bash_describe = "gcloud container clusters describe --format=json cluster-gleam --zone "+str(args.zone)+" --project "+str(args.project)
+    bash_describe = "gcloud container clusters describe --format=json "+str(args.cluster)+" --zone "+str(args.zone)+" --project "+str(args.project)
     cluster_info = str(subprocess.check_output(bash_describe, shell=True)).replace("\\n", "").replace("b\'", "").replace("\'", "")
     cluster_info = json.loads(cluster_info)
-    autoscale, max_nodes,min_nodes,overscaler,metrics,rules = ot.get_cluster_labels(cluster_info)
-
-    statefulset_info = pykube.StatefulSet.objects(api).filter(namespace=args.namespace).response
-    statefulset_labels=ot.get_statefulset_labels(statefulset_info)
+    autoscale, max_nodes,min_nodes,metrics = ot.get_cluster_labels(cluster_info)
     current_nodes=ot.get_num_nodes()
-
     if autoscale==False: max_nodes, min_nodes =current_nodes, current_nodes
 
+    #Getting information about Stateful Sets.
+    statefulset_info = pykube.StatefulSet.objects(api).filter(namespace=args.namespace).response
+    statefulset_labels=ot.get_statefulset_labels(statefulset_info)
+
+
     #Printing information by console.
-    op.print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,overscaler,metrics)
+    op.print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,metrics)
     op.print_statefulset_info(statefulset_labels)
 
     #Counters for refreshing.
@@ -47,7 +47,6 @@ def main():
         #Is it necessary to refresh credentials?
         t1=datetime.datetime.now()
         if (t1-t_auth).seconds>int(args.refresh_auth):
-            ot.cluster_auth(args.zone, args.project)
             api = pykube.HTTPClient(pykube.KubeConfig.from_file("~/.kube/config"))
             ot.start_proxy()
             t_auth = datetime.datetime.now()
@@ -59,10 +58,10 @@ def main():
                                                                                                         "").replace(
                 "\'", "")
             output = json.loads(output)
-            autoscale, max_nodes, min_nodes, overscaler, metrics, rules = ot.get_cluster_labels(output)
+            autoscale, max_nodes, min_nodes, metrics= ot.get_cluster_labels(output)
             current_nodes = ot.get_num_nodes()
             if autoscale == False: max_nodes, min_nodes =current_nodes, current_nodes
-            op.print_cluster_info(autoscale, current_nodes, max_nodes, min_nodes, overscaler, metrics)
+            op.print_cluster_info(autoscale, current_nodes, max_nodes, min_nodes, metrics)
             t_nodes = datetime.datetime.now()
 
         #Is it necessary to refresh stateful set information?
@@ -75,13 +74,13 @@ def main():
 
 
         #Getting node status and printing it.
-        node_status = ot.get_node_status(metrics)
+        node_status, max_node_cpu, max_node_memory = ot.get_node_status(metrics)
         op.print_node_status(node_status)
 
         #Getting pod status, printing and making decisions.
-        if list(node_status.keys()):
-            pod_status=ot.get_pod_status(api,args.namespace,statefulset_labels,node_status[list(node_status.keys())[0]]['memory-allocatable'],node_status[list(node_status.keys())[0]]['cpu-allocatable'])
-            if len(list(pod_status.keys())) > 0:
+        if node_status:
+            pod_status=ot.get_pod_status(api,args.namespace,statefulset_labels,max_node_memory,max_node_cpu)
+            if pod_status:
                 op.print_pod_status(pod_status)
                 ot.actions(api,args.namespace, pod_status, statefulset_labels, max_nodes)
 

@@ -1,0 +1,22 @@
+{
+    "node_name1":{
+        "pod-name1":{
+            "metric-name1": 1,            
+            "metric-name2": 2
+         },
+        "pod-name2":{
+            "metric-name1": 3,            
+            "metric-name2": 4
+         }
+    },
+    "node_name2":{
+        "pod-name3":{
+            "metric-name1": 5,            
+            "metric-name2": 6
+         },
+        "pod-name4":{
+            "metric-name1": 7,            
+            "metric-name2": 8
+         }
+     }
+} 

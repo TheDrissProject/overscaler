@@ -32,6 +32,8 @@ spec:
         env:
           - name: GOOGLE_APPLICATION_CREDENTIALS
             value: /overscaler/credentials/application_default_credentials.json
+          - name: CLUSTER
+            value: cluster_name
           - name: NAMESPACE
             value: namespace
           - name: PROJECT
@@ -46,7 +48,10 @@ spec:
             value: seconds
 
         command: ["/bin/sh","-c"]
-        args: ["python3 /overscaler/python/overscaler.py --namespace=$NAMESPACE --zone=$ZONE --project=$PROJECT --refresh_auth=$REFRESH_AUTH --refresh_statefulset=$REFRESH_STATEFULSET --refresh_cluster=$REFRESH_CLUSTER"]
+        args: [
+            "gcloud auth activate-service-account --key-file /overscaler/credentials/application_default_credentials.json;
+             gcloud container clusters get-credentials $CLUSTER --zone $ZONE --project $PROJECT;
+             python3 /overscaler/python/overscaler.py --cluster=$CLUSTER --namespace=$NAMESPACE --zone=$ZONE --project=$PROJECT --refresh_statefulset=$REFRESH_STATEFULSET --refresh_cluster=$REFRESH_CLUSTER --refresh_auth=$REFRESH_AUTH"]
         resources:
             limits:
               cpu: 100m
