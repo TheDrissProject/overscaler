@@ -1,0 +1,36 @@
+{
+  "input": {
+    "items": [
+      {
+        "metadata": {
+          "labels": {
+            "app": "app",
+            "min-replicas": "",
+            "autoscaler-count": "3",
+            "max-replicas": "5",
+            "current-count": "0",
+            "metric-": "memory-usage-percent",
+            "overscaler": "true",
+            "metric-kbvkajdbfaoubva": "cpu-usage-percent",
+            "rescaling": "false"
+          }
+        }
+      }
+    ]
+  },
+  "output": [{
+    "empty":false,
+    "app": "app",
+    "all-metrics":false,
+    "overscaler": false,
+    "current-count": 0,
+    "autoscaler-count": 0,
+    "max-replicas": 0,
+    "min-replicas": 0,
+    "rules": [],
+    "metrics":["memory-usage-percent","cpu-usage-percent"]
+  }
+]
+}
+
+

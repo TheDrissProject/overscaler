@@ -1,4 +1,0 @@
-numpy
-pykube
-argparse
-pytest

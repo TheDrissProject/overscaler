@@ -1,0 +1,30 @@
+{
+  "input": {
+    "items": [
+      {
+        "metadata": {
+          "labels": {
+            "app": "app",
+            "metric-1": "memory-usage-percent",
+            "metric-1": "cpu-usage-percent"
+          }
+        }
+      }
+    ]
+  },
+  "output": [{
+    "empty":false,
+    "app": "app",
+    "all-metrics":false,
+    "overscaler": false,
+    "current-count": 0,
+    "autoscaler-count": 0,
+    "max-replicas": 0,
+    "min-replicas": 0,
+    "rules": [
+    ],
+    "metrics":["memory-usage-percent","cpu-usage-percent"]
+  }
+  ]
+}
+

@@ -19,22 +19,11 @@ jobs:
     steps:
       - checkout
 
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "Dockerfile/python/requirements.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
       - run:
           name: install pip and create necessary directories.
           command: |
             apt update && apt -y upgrade
             apt install -y python3-pip python3-venv
-            mkdir /overscaler
-            mkdir /overscaler/python
-            mv Dockerfile/python/pod_metrics.json /overscaler/python/pod_metrics.json
-            mv Dockerfile/python/node_metrics.json /overscaler/python/node_metrics.json
 
       - run:
           name: install dependencies
@@ -42,12 +31,10 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip3 install --upgrade pip
-            pip3 install -r Dockerfile/python/requirements.txt
-
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "Dockerfile/python/requirements.txt" }}
+            pip3 install -r requirements.txt
+            pip3 install -r test_requirements.txt
+            pip3 -e .
+          
         
       # run tests!
       # this example uses Django's built-in test-runner
@@ -58,8 +45,8 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            pytest Dockerfile/test/overtools_test.py -vvv -s
-            pytest Dockerfile/test/overprint_test.py -vvv -s
+            pytest tests/test_overtools.py -vvv -s
+            pytest tests/test_overprint.py -vvv -s
 
       - store_artifacts:
           path: test-reports

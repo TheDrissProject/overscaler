@@ -1,0 +1,35 @@
+{
+  "input": {
+    "items": [
+      {
+        "metadata": {
+          "labels": {
+            "app": "app",
+            "metric-----": "memory-usage-percent",
+            "min-replicas": "1",
+            "autoscaler-count": "3",
+            "max-replicas": "5",
+            "current-count": "0",
+            "overscaler": "true",
+            "rescaling": "false"
+          }
+        }
+      }
+    ]
+  },
+  "output": [{
+    "empty":false,
+    "app": "app",
+    "all-metrics":false,
+    "overscaler": true,
+    "current-count": 0,
+    "autoscaler-count": 3,
+    "max-replicas": 5,
+    "min-replicas": 1,
+    "rules": [
+    ],
+    "metrics":["memory-usage-percent"]
+  }
+  ]
+}
+
