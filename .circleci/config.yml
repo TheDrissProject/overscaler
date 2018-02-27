@@ -33,7 +33,7 @@ jobs:
             pip3 install --upgrade pip
             pip3 install -r requirements.txt
             pip3 install -r test_requirements.txt
-            pip3 -e .
+            pip3 install -e .
           
         
       # run tests!
