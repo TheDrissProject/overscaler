@@ -19,8 +19,7 @@ standard_pod_metrics = json.load(open(os.path.join(os.path.dirname(__file__),'po
 
 def start_proxy():
     """
-    Starts local proxy to Kubernetes cluster.
-    host: 127.0.0.1:8001
+    Starts local proxy to Kubernetes cluster, host: 127.0.0.1:8001
 
     """
 
@@ -34,14 +33,18 @@ def start_proxy():
 def check_rule(rule,typ):
     """
     Checks the rules are well written.
-    Format rule: metric_greater|lower_limit_scale|reduce|and_*
 
-    Arguments:
-    - rule: Rule to check. (string)
-    - type: Rule type, can be for node or pod
+        Format rule: \"metric_greater|lower_limit_scale|reduce\"
 
-    Output:
-    - check: True if the rule has correct format. (boolean)
+    Parameters:
+        - rule: str 
+            Rule to check.
+        - type: str
+            Rule type, can be for node or pod
+
+    Returns:
+        - check: bool
+            True if the rule has correct format.
     """
 
     rule=rule.split("_")
@@ -65,8 +68,9 @@ def get_num_nodes():
     """
     Returns number of active nodes.
 
-    Output:
-    - num_nodes: Number of current nodes. (int)
+    Returns:
+        - num_nodes: int
+            Number of current nodes.
     """
 
     try:
@@ -82,8 +86,13 @@ def get_mean(metric):
     """
     Calculates the arithmetic mean of a metric.
 
-    Output:
-    - mean: arithmetic mean. (float)
+    Parameters:
+        - metric: dict 
+            Dictionary with status metrics.
+
+    Returns:
+        - mean: float
+            Arithmetic mean.
     """
 
     mean=0
@@ -105,9 +114,16 @@ def get_metrics(labels, typ):
     """
     Get metrics from a dictionary of labels.
 
-    Output:
-    - labels: Dictionary with all metrics. (dict)
-    - typ: Metrics type, "pod" or "cluster". (string)
+    Parameters:
+        - labels: dict
+            Dictionary with all metrics.
+        - typ: str
+            Metrics type, "pod" or "cluster".
+
+    Returns:
+        - metrics: str lst
+            List with metrics to monitor.
+
     """
 
     metrics=[]
@@ -134,9 +150,16 @@ def get_rules(labels, name):
     """
     Get rules from a dictionary of labels.
 
-    Output:
-    - labels: Dictionary with all rules. (dict)
-    - name: Stateful Set name. (string)
+    Parameters:
+        - labels: dict 
+            Dictionary with all rules.
+        - name: str
+            Stateful Set name.
+
+    Returns:
+        - rules: str list
+            List with all rules to apply.
+
     """
 
     rules=[]
@@ -158,14 +181,19 @@ def get_cluster_labels(cluster_info):
     Returns information about the number of nodes and their limits,
     node autoscale function and labels.
 
-    Arguments:
-    - cluster_info: Dictionary with all cluster information. (dict)
+    Parameters:
+        - cluster_info: dict
+           Dictionary with all cluster information.
 
-    Output:
-    - autoscale: True if the node autoscale is active. (boolean)
-    - max_nodes: Maximum number of allowed nodes. (int)
-    - min_nodes: Minimum number of allowed nodes. (int)
-    - metrics: List of cluster metrics to monitor. (string array)
+    Returns:
+        - autoscale: bool
+            True if node autoscale is active.
+        - max_nodes: int
+            Maximum number of allowed nodes.
+        - min_nodes: int
+            Minimum number of allowed nodes.
+        - metrics: list
+            List of cluster metrics to monitor.
     """
 
     metrics = []
@@ -222,31 +250,39 @@ def get_statefulset_labels(statefulset_info):
     Gets Stateful Set information.
     Returns information about labels, metrics and rules.
 
-    Arguments:
-    - statefulset_info: Dictionary with all Stateful Set information. (dict)
+    Parameters:
+        - statefulset_info: dict
+            Dictionary with all Stateful Set information.
 
-    Output:
-    - statefulset_labels: Dictionary with only the information needed for the overscaler. (dict)
+    Returns:
+        - statefulset_labels: dict
+             Dictionary with only the information needed for the overscaler.
 
-    Dict Format:
-    {
-    statefulset_name1:{
-        overscaler: true|false,            Is overscaler active? (boolean)
-        current-count:number,              Autoscale pause counter. (int)
-        autoscaler-count: number,          Number of waiting cycles after rescalling. (int)
-        max-replicas: number,              Maximum number of replicas. (int)
-        min-replicas: number,              Minimum number of replicas. (int)
-        metrics: [metric1,metric2...],     List with all metrics to monitor. (string array)
-        rules: [rule1,rule2...]            List with all rules for this Stateful Set. (string array)
-        }
-    statefulset_name2:{
-        ...
-        ....
-        .....
-        }
+    Returned dict format:
+     {
+        statefulset_name1:{
+            overscaler: bool,
+                Is overscaler active? 
+            current-count:int,
+                Autoscale pause counter. 
+            autoscaler-count: int number,
+                Number of waiting cycles after rescalling.
+            max-replicas: int,
+                Maximum number of replicas.
+            min-replicas: int,
+                Minimum number of replicas.
+            metrics: [str, str...],
+                List with all metrics to monitor.
+            rules: [str,str...]
+                List with all rules for this Stateful Set.
+
+            ...
+            }
+        statefulset_name2:{
+            ...
+            }
+
     ...
-    ....
-    .....
     }
     """
 
@@ -313,35 +349,36 @@ def get_statefulset_labels(statefulset_info):
 def get_node_status(metrics):
     """
     Gets Node status.
+
     Returns information about state of all nodes.
 
-    Arguments:
-    - metrics: List of metrics to monitor. (string array)
+    Parameters:
+        - metrics: str list
+            List of metrics to monitor.
 
-    Output:
-    - node_status: Dictionary with all the information. (dict)
+    Returns:
+        - node_status: dict
+            Dictionary with all the information.
 
-    Dict Format:
-    {
-    node_name1:{
-         metric-name1: number,            Value each metric. (int)
-         metric-name2: number,
-         ...
-         ....
-         .....
-         }
+    Returned dict format:
+     {
+        node_name1:{
+            metric-1: float,
+                Metric-1 value.
+            metric-2: float,
+                Metric-2 value.
 
-    node2_name:{
-         ...
-         ....
-         .....
-         }
-    ...
-    ....
-    .....
+        ...
+        }
+
+        node_name2:{
+        ...
+        }
+    
+    ... 
     }
-    """
 
+    """
 
     try:
         node_status = {}
@@ -384,38 +421,49 @@ def get_node_status(metrics):
 def get_pod_status(api,namespace,statefulset_labels,memory_allocatable, cpu_allocatable):
     """
     Gets Pod status.
+
     Returns information about state of all stateful set pods.
 
-    Arguments:
-    - api: Http client for requests to Kubernetes Api. (pykube.http.HTTPClient)
-    - namespace: Project namespace (string)
-    - statefulset_lables: Dict with metrics for each stateful set. (dict)
-    - memory_allocatable: Maximum memory allowed per node, expressed in bytes.(int)
-    - cpu_allocatable: Maximum memory allowed per node, expressed in minicores. (int)
+    Parameters:
+        - api: pykube.http.HTTPClient
+            Http client for requests to Kubernetes Api.
+        - namespace: str
+            Project namespace.
+        - statefulset_lables: dict
+            Dict with metrics for each stateful set.
+        - memory_allocatable: int
+            Maximum memory allowed per node, expressed in bytes.
+        - cpu_allocatable: int
+            Maximum memory allowed per node, expressed in minicores.
 
-    Output:
-    - pod_status: Dictionary with all the information. (dict)
+    Returns:
+        - pod_status: dict
+            Dictionary with all the information. 
 
-    Dict Format:
+    Returned dict format:
+
     {
-    node_name1:{
+     node_name1:{
         pod-name1:{
-            metric-name1: number,            Value each metric. (int|float)
-            metric-name2: number,
+            metric-1: float,
+                Metric-1 value.
+            metric-2: float,
+                Metric-2 value.
+
             ...
-            ....
-            .....}
+            }
+
         pod-name2:{
-            metric-name1: number,            Value each metric. (int|float)
-            metric-name2: number,
             ...
-            ....
-            .....}
+            }
+
         }
-    node2_name:{
+
+     node_name2:{
          ...
-         ....
-         .....}
+         }
+
+    ...
     }
     """
     pre_set = pykube.Pod.objects(api)
@@ -468,12 +516,17 @@ def actions(api,namespace, pod_status, statefulset_labels, max_nodes):
     """
     Decision making based on pods status and stateful set rules.
 
-    Arguments:
-    - api: Http client for requests to Kubernetes Api. (pykube.http.HTTPClient)
-    - namespace: Project namespace (string)
-    - pod_status: Dictionary with status pod information. (dict)
-    - statefulset_lables: Dict with metrics and rules of each stateful set. (dict)
-    - max_nodes: Maximum number of allowed nodes. (int)
+    Parameters:
+        - api: pykube.http.HTTPClient
+            Http client for requests to Kubernetes Api.
+        - namespace: str
+            Project namespace.
+        - pod_status: dict
+            Dictionary with status pod information. 
+        - statefulset_lables: dict
+            Dict with metrics and rules of each stateful set.
+        - max_nodes: int
+            Maximum number of allowed nodes.
     """
 
     for i in pod_status:
@@ -514,12 +567,17 @@ def rescale(api,namespace,statefulset_name,action,max_nodes):
     """
     Sets a new number of replicas for a given stateful set.
 
-    Arguments:
-    - api: Http client for requests to Kubernetes Api. (pykube.http.HTTPClient)
-    - namespace: Project namespace (string)
-    - statefulset_name: Name of the statefulset to be rescaled. (dict)
-    - action: Action to be realized. Can be "rescale" o "reduce",one pods more or one pod less, respectively. (string)
-    - max_nodes: Maximum number of allowed nodes. (int).
+    Parameters:
+        - api: pykube.http.HTTPClient
+            Http client for requests to Kubernetes Api.
+        - namespace: str
+            Project namespace.
+        - statefulset_name: dict
+            Name of the statefulset to be rescaled.
+        - action: str
+            Action to be realized. Can be "scale" o "reduce", one pods more or one pod less, respectively.
+        - max_nodes: dict
+            Maximum number of allowed nodes.
     """
 
     try:
@@ -560,12 +618,16 @@ def rescale(api,namespace,statefulset_name,action,max_nodes):
 def update_current_count(api,namespace,statefulsets_labels):
     """
     Updates the "current-count" label of all Stateful sets.
+
     If its value is 0, this stateful set is ready to be scaled if is necessary.
 
-    Arguments:
-    - api: Http client for requests to Kubernetes Api. (pykube.http.HTTPClient)
-    - namespace: Project namespace (string)
-    - statefulset_lables: Dict with metrics and rules of each stateful set. (dict)
+    Parameters:
+        - api: pykube.http.HTTPClient
+            Http client for requests to Kubernetes Api.
+        - namespace: str
+            Project namespace.
+        - statefulset_lables: dict
+            Dict with metrics and rules of each stateful set.
     """
 
     for i in statefulsets_labels:

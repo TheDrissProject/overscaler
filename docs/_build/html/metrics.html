@@ -1,0 +1,359 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Labels &#8212; Overscaler alpha documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="overscaler" href="modules.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="modules.html" title="overscaler"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Overscaler alpha documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="labels">
+<h1>Labels<a class="headerlink" href="#labels" title="Permalink to this headline">¶</a></h1>
+<p>As already mentioned this system is based on labels to know what metrics to get and what rules to apply. This labels must be written in spec.template.metadata.labels within the deployment yaml file.</p>
+<div class="section" id="overscaler-labels">
+<h2>Overscaler labels<a class="headerlink" href="#overscaler-labels" title="Permalink to this headline">¶</a></h2>
+<p>In addition to metrics and rules it is also necessary to add some extra labels for the correct operation of the system.</p>
+<blockquote>
+<div><ul class="simple">
+<li>app: Stateful Set name.</li>
+<li>overscaler: “true” or “false”, active or deactivate overscaler in this Stateful set.</li>
+<li>current-count: Rescaling counter. During monitoring, this value is reduced until 0, then is possible to rescale.</li>
+<li>autoscaler-count: Value to be assigned in “current-count” after rescaling.</li>
+<li>min-replicas: Maximum number of replicas for this stateful set.</li>
+<li>max-replicas: Minimum number of replicas for this stateful set.</li>
+<li>rescaling: Flag to know when a Stateful Set is being rescaled.</li>
+</ul>
+</div></blockquote>
+<p>Current-count and autoscaler-count labels play a key role. Each type of service requires a certain time after start to configure and start working in parallel with the other replicas. With these labels we guarantee that time.</p>
+</div>
+<div class="section" id="metrics">
+<h2>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline">¶</a></h2>
+<p>Overscaler is designed for a customizable monitoring through labels, adding a label for each metric to monitor, and there are different sets of node and pod metrics.</p>
+<p>Label format:</p>
+<blockquote>
+<div>metric-n: “metric-name”</div></blockquote>
+<p>Example:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>metric-1: <span class="s2">&quot;cpu-usage-percent&quot;</span>
+</pre></div>
+</div>
+<p>However, it is still possible to monitor the entire node or pod using the label “all-metrics: true”.</p>
+<div class="section" id="node-metrics">
+<h3>Node metrics<a class="headerlink" href="#node-metrics" title="Permalink to this headline">¶</a></h3>
+<p>These metrics determine the status of the different nodes and are assigned by labels in the Google Kubernetes Engine.</p>
+<table border="1" class="colwidths-auto docutils" id="id1">
+<caption><span class="caption-text">Node metrics</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Metric Name</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>cpu-limit</td>
+<td>Cpu hard limit in millicores.</td>
+</tr>
+<tr class="row-odd"><td>cpu-node-capacity</td>
+<td>Cpu capacity of a node.</td>
+</tr>
+<tr class="row-even"><td>cpu-node-allocatable</td>
+<td>Cpu allocatable of a node.</td>
+</tr>
+<tr class="row-odd"><td>cpu-node-reservation</td>
+<td>Share of cpu that is reserved on the node allocatable.</td>
+</tr>
+<tr class="row-even"><td>cpu-node-utilization</td>
+<td>Cpu utilization as a share of node allocatable.</td>
+</tr>
+<tr class="row-odd"><td>cpu-request</td>
+<td>Cpu request (the guaranteed amount of resources) in millicores.</td>
+</tr>
+<tr class="row-even"><td>cpu-usage</td>
+<td>Cumulative cpu usage on all cores.</td>
+</tr>
+<tr class="row-odd"><td>cpu-usage-rate</td>
+<td>Cpu usage on all cores in millicores.</td>
+</tr>
+<tr class="row-even"><td>cpu-usage-percent</td>
+<td>Cpu usage percent of total cpu Node.</td>
+</tr>
+<tr class="row-odd"><td>memory-limit</td>
+<td>Memory hard limit in bytes.</td>
+</tr>
+<tr class="row-even"><td>memory-major-page-faults</td>
+<td>Number of major page faults.</td>
+</tr>
+<tr class="row-odd"><td>memory-major-page-faults-rate</td>
+<td>Number of major page faults per second.</td>
+</tr>
+<tr class="row-even"><td>memory-node-capacity</td>
+<td>Memory capacity of a node.</td>
+</tr>
+<tr class="row-odd"><td>memory-node-allocatable</td>
+<td>Memory allocatable of a node.</td>
+</tr>
+<tr class="row-even"><td>memory-node-reservation</td>
+<td>Share of memory that is reserved on the node allocatable.</td>
+</tr>
+<tr class="row-odd"><td>memory-node-utilization</td>
+<td>Memory utilization as a share of memory allocatable.</td>
+</tr>
+<tr class="row-even"><td>memory-page-faults</td>
+<td>Number of page faults.</td>
+</tr>
+<tr class="row-odd"><td>memory-page-faults-rate</td>
+<td>Number of page faults per second.</td>
+</tr>
+<tr class="row-even"><td>memory-request</td>
+<td>Memory request (the guaranteed amount of resources) in bytes.</td>
+</tr>
+<tr class="row-odd"><td>memory-usage</td>
+<td>Total memory usage.</td>
+</tr>
+<tr class="row-even"><td>memory-rss</td>
+<td>RSS memory usage.</td>
+</tr>
+<tr class="row-odd"><td>memory-working-set</td>
+<td>Total working set usage. Working set is the memory being used and not easily dropped by the    kernel.</td>
+</tr>
+<tr class="row-even"><td>memory-usage-percent</td>
+<td>Memory usage percent of total memory Node.</td>
+</tr>
+<tr class="row-odd"><td>network-rx</td>
+<td>Cumulative number of bytes received over the network.</td>
+</tr>
+<tr class="row-even"><td>network-rx-errors</td>
+<td>Cumulative number of errors while receiving over the network.</td>
+</tr>
+<tr class="row-odd"><td>network-rx-errors-rate</td>
+<td>Number of errors while receiving over the network per second.</td>
+</tr>
+<tr class="row-even"><td>network-rx-rate</td>
+<td>Number of bytes received over the network per second.</td>
+</tr>
+<tr class="row-odd"><td>network-tx</td>
+<td>Cumulative number of bytes sent over the network</td>
+</tr>
+<tr class="row-even"><td>network-tx-errors</td>
+<td>Cumulative number of errors while sending over the network</td>
+</tr>
+<tr class="row-odd"><td>network-tx-errors-rate</td>
+<td>Number of errors while sending over the network</td>
+</tr>
+<tr class="row-even"><td>network-tx-rate</td>
+<td>Number of bytes sent over the network per second.</td>
+</tr>
+<tr class="row-odd"><td>uptime</td>
+<td>Number of milliseconds since the container was started.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="pod-metrics">
+<h3>Pod metrics<a class="headerlink" href="#pod-metrics" title="Permalink to this headline">¶</a></h3>
+<p>These metrics determine the status of any Pods and are assigned by labels in the different Stateful sets.</p>
+<table border="1" class="colwidths-auto docutils" id="id2">
+<caption><span class="caption-text">Pod metrics</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Metric Name</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>cpu-limit</td>
+<td>Cpu hard limit in millicores.</td>
+</tr>
+<tr class="row-odd"><td>cpu-request</td>
+<td>Cpu request (the guaranteed amount of resources) in millicores.</td>
+</tr>
+<tr class="row-even"><td>cpu-usage-rate</td>
+<td>Cpu usage on all cores in millicores.</td>
+</tr>
+<tr class="row-odd"><td>cpu-usage-percent</td>
+<td>Cpu usage percent of total node cpu.</td>
+</tr>
+<tr class="row-even"><td>memory-limit</td>
+<td>Memory hard limit in bytes.</td>
+</tr>
+<tr class="row-odd"><td>memory-major-page-faults-rate</td>
+<td>Number of major page faults per second.</td>
+</tr>
+<tr class="row-even"><td>memory-page-faults-rate</td>
+<td>Number of page faults per second.</td>
+</tr>
+<tr class="row-odd"><td>memory-request</td>
+<td>Memory request (the guaranteed amount of resources) in bytes.</td>
+</tr>
+<tr class="row-even"><td>memory-usage</td>
+<td>Total memory usage.</td>
+</tr>
+<tr class="row-odd"><td>memory-rss</td>
+<td>RSS memory usage.</td>
+</tr>
+<tr class="row-even"><td>memory-working-set</td>
+<td>Total working set usage. Working set is the memory being used and not easily dropped by the kernel.</td>
+</tr>
+<tr class="row-odd"><td>memory-usage-percent</td>
+<td>Memory usage percent of total node memory.</td>
+</tr>
+<tr class="row-even"><td>network-rx</td>
+<td>Cumulative number of bytes received over the network.</td>
+</tr>
+<tr class="row-odd"><td>network-rx-errors</td>
+<td>Cumulative number of errors while receiving over the network.</td>
+</tr>
+<tr class="row-even"><td>network-rx-errors-rate</td>
+<td>Number of errors while receiving over the network per second.</td>
+</tr>
+<tr class="row-odd"><td>network-rx-rate</td>
+<td>Number of bytes received over the network per second.</td>
+</tr>
+<tr class="row-even"><td>network-tx</td>
+<td>Cumulative number of bytes sent over the network</td>
+</tr>
+<tr class="row-odd"><td>network-tx-errors</td>
+<td>Cumulative number of errors while sending over the network</td>
+</tr>
+<tr class="row-even"><td>network-tx-errors-rate</td>
+<td>Number of errors while sending over the network</td>
+</tr>
+<tr class="row-odd"><td>network-tx-rate</td>
+<td>Number of bytes sent over the network per second.</td>
+</tr>
+<tr class="row-even"><td>uptime</td>
+<td>Number of milliseconds since the container was started.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="rules">
+<h2>Rules<a class="headerlink" href="#rules" title="Permalink to this headline">¶</a></h2>
+<p>The rules for scaling are also assigned by labels and must have a specific syntax:</p>
+<p>Label format:</p>
+<blockquote>
+<div><blockquote>
+<div>rule-n: “metric_greater|lower_limit_scale|reduce”</div></blockquote>
+<ul class="simple">
+<li>metric: Previously established metrics.</li>
+<li>greater or lower: “&gt;” or “&lt;” that limit.</li>
+<li>limit: Number that establishes a limit</li>
+<li>scale or reduce: Action to be realized when the limit is exceeded.</li>
+</ul>
+</div></blockquote>
+<p>Example:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>rule-1: <span class="s2">&quot;cpu-usage-percent_greater_90_scale&quot;</span>
+rule-2: <span class="s2">&quot;memory-usage-percent_greater_90_scale&quot;</span>
+rule-3: <span class="s2">&quot;cpu-usage-percent_lower_10_reduce&quot;</span>
+rule-4: <span class="s2">&quot;memory-usage-percent_lower_10_reduce&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Labels</a><ul>
+<li><a class="reference internal" href="#overscaler-labels">Overscaler labels</a></li>
+<li><a class="reference internal" href="#metrics">Metrics</a><ul>
+<li><a class="reference internal" href="#node-metrics">Node metrics</a></li>
+<li><a class="reference internal" href="#pod-metrics">Pod metrics</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#rules">Rules</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="installation.html"
+                        title="previous chapter">Installation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="modules.html"
+                        title="next chapter">overscaler</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/metrics.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="modules.html" title="overscaler"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Overscaler alpha documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Gleam AI.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

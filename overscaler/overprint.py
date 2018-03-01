@@ -7,12 +7,17 @@ def print_cluster_info(autoscale,current_nodes, max_nodes,min_nodes,metrics):
     """
     Prints Cluster information by console.
 
-    Arguments:
-    - autoscale: True if the node autoscale is active. (boolean)
-    - current_nodes: Number of current nodes. (int)
-    - max_nodes: Maximum number of allowed nodes. (int)
-    - min_nodes: Minimum number of allowed nodes. (int)
-    - metrics: List of cluster metrics to monitor. (string array)
+    Parameters:
+        - autoscale: bool
+            True if the node autoscale is active.
+        - current_nodes: int 
+            Number of current nodes.
+        - max_nodes: int
+            Maximum number of allowed nodes.
+        - min_nodes: int
+            Minimum number of allowed nodes.
+        - metrics: array list
+            List of cluster metrics to monitor.
 
     """
 
@@ -39,8 +44,9 @@ def print_statefulset_info(statefulset_labels):
     """
     Prints Stateful Set information by console.
 
-    Arguments:
-    - statefulset_lables: Dict with metrics and rules of each stateful set. (dict)
+    Parameters:
+        - statefulset_lables: dict
+            Dictionary with metrics and rules of each stateful set.
 
     """
     for i in statefulset_labels:
@@ -61,8 +67,9 @@ def print_node_status(node_status):
     """
     Prints Node status by console.
 
-    Arguments:
-    - node_status: Dictionary with all the information about the status of each node. (dict)
+    Parameters:
+        - node_status: dict
+            Dictionary with all the information about the status of each node.
 
     """
     click.echo(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [STATUS INFO] Node Status:")
@@ -75,8 +82,9 @@ def print_pod_status(pod_status):
     """
     Prints Pod status by console.
 
-    Arguments:
-    - pod_status: Dictionary with all the information about the status of each pod. (dict)
+    Parameters:
+        - pod_status: dict
+            Dictionary with all the information about the status of each pod.
 
     """
     click.echo(strftime("%Y-%m-%d %H:%M:%S", gmtime())+" [STATUS INFO] Pods Status:")

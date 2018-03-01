@@ -1,0 +1,690 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>overscaler package &#8212; Overscaler alpha documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="overscaler" href="modules.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="modules.html" title="overscaler"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Overscaler alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" accesskey="U">overscaler</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="overscaler-package">
+<h1>overscaler package<a class="headerlink" href="#overscaler-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-overscaler.overcli">
+<span id="overscaler-overcli-module"></span><h2>overscaler.overcli module<a class="headerlink" href="#module-overscaler.overcli" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-overscaler.overprint">
+<span id="overscaler-overprint-module"></span><h2>overscaler.overprint module<a class="headerlink" href="#module-overscaler.overprint" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="overscaler.overprint.print_cluster_info">
+<code class="descclassname">overscaler.overprint.</code><code class="descname">print_cluster_info</code><span class="sig-paren">(</span><em>autoscale</em>, <em>current_nodes</em>, <em>max_nodes</em>, <em>min_nodes</em>, <em>metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overprint.html#print_cluster_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overprint.print_cluster_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints Cluster information by console.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>autoscale: bool</dt>
+<dd>True if the node autoscale is active.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>current_nodes: int </dt>
+<dd>Number of current nodes.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>max_nodes: int</dt>
+<dd>Maximum number of allowed nodes.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>min_nodes: int</dt>
+<dd>Minimum number of allowed nodes.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>metrics: array list</dt>
+<dd>List of cluster metrics to monitor.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overprint.print_node_status">
+<code class="descclassname">overscaler.overprint.</code><code class="descname">print_node_status</code><span class="sig-paren">(</span><em>node_status</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overprint.html#print_node_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overprint.print_node_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints Node status by console.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>node_status: dict</dt>
+<dd>Dictionary with all the information about the status of each node.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overprint.print_pod_status">
+<code class="descclassname">overscaler.overprint.</code><code class="descname">print_pod_status</code><span class="sig-paren">(</span><em>pod_status</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overprint.html#print_pod_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overprint.print_pod_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints Pod status by console.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>pod_status: dict</dt>
+<dd>Dictionary with all the information about the status of each pod.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overprint.print_statefulset_info">
+<code class="descclassname">overscaler.overprint.</code><code class="descname">print_statefulset_info</code><span class="sig-paren">(</span><em>statefulset_labels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overprint.html#print_statefulset_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overprint.print_statefulset_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints Stateful Set information by console.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>statefulset_lables: dict</dt>
+<dd>Dictionary with metrics and rules of each stateful set.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-overscaler.overtools">
+<span id="overscaler-overtools-module"></span><h2>overscaler.overtools module<a class="headerlink" href="#module-overscaler.overtools" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="overscaler.overtools.actions">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">actions</code><span class="sig-paren">(</span><em>api</em>, <em>namespace</em>, <em>pod_status</em>, <em>statefulset_labels</em>, <em>max_nodes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#actions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decision making based on pods status and stateful set rules.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>api: pykube.http.HTTPClient</dt>
+<dd>Http client for requests to Kubernetes Api.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>namespace: str</dt>
+<dd>Project namespace.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>pod_status: dict</dt>
+<dd>Dictionary with status pod information.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>statefulset_lables: dict</dt>
+<dd>Dict with metrics and rules of each stateful set.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>max_nodes: int</dt>
+<dd>Maximum number of allowed nodes.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.check_rule">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">check_rule</code><span class="sig-paren">(</span><em>rule</em>, <em>typ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#check_rule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.check_rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks the rules are well written.</p>
+<blockquote>
+<div>Format rule: “metric_greater|lower_limit_scale|reduce”</div></blockquote>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>rule: str </dt>
+<dd>Rule to check.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>type: str</dt>
+<dd>Rule type, can be for node or pod</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>check: bool</dt>
+<dd>True if the rule has correct format.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_cluster_labels">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_cluster_labels</code><span class="sig-paren">(</span><em>cluster_info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_cluster_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_cluster_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets cluster information.</p>
+<p>Returns information about the number of nodes and their limits,
+node autoscale function and labels.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>cluster_info: dict</dt>
+<dd>Dictionary with all cluster information.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>autoscale: bool</dt>
+<dd>True if node autoscale is active.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>max_nodes: int</dt>
+<dd>Maximum number of allowed nodes.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>min_nodes: int</dt>
+<dd>Minimum number of allowed nodes.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>metrics: list</dt>
+<dd>List of cluster metrics to monitor.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_mean">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_mean</code><span class="sig-paren">(</span><em>metric</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the arithmetic mean of a metric.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>metric: dict </dt>
+<dd>Dictionary with status metrics.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>mean: float</dt>
+<dd>Arithmetic mean.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_metrics">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_metrics</code><span class="sig-paren">(</span><em>labels</em>, <em>typ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_metrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_metrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get metrics from a dictionary of labels.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>labels: dict</dt>
+<dd>Dictionary with all metrics.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>typ: str</dt>
+<dd>Metrics type, “pod” or “cluster”.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>metrics: str lst</dt>
+<dd>List with metrics to monitor.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_node_status">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_node_status</code><span class="sig-paren">(</span><em>metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_node_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_node_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets Node status.</p>
+<p>Returns information about state of all nodes.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>metrics: str list</dt>
+<dd>List of metrics to monitor.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>node_status: dict</dt>
+<dd>Dictionary with all the information.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returned dict format:</dt>
+<dd><dl class="first last docutils">
+<dt>{</dt>
+<dd><dl class="first docutils">
+<dt>node_name1:{</dt>
+<dd><dl class="first last docutils">
+<dt>metric-1: float,</dt>
+<dd>Metric-1 value.</dd>
+<dt>metric-2: float,</dt>
+<dd>Metric-2 value.</dd>
+</dl>
+</dd>
+</dl>
+<p>…
+}</p>
+<p class="last">node_name2:{
+…
+}</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>… 
+}</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_num_nodes">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_num_nodes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_num_nodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_num_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns number of active nodes.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>num_nodes: int</dt>
+<dd>Number of current nodes.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_pod_status">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_pod_status</code><span class="sig-paren">(</span><em>api</em>, <em>namespace</em>, <em>statefulset_labels</em>, <em>memory_allocatable</em>, <em>cpu_allocatable</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_pod_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_pod_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets Pod status.</p>
+<p>Returns information about state of all stateful set pods.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>api: pykube.http.HTTPClient</dt>
+<dd>Http client for requests to Kubernetes Api.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>namespace: str</dt>
+<dd>Project namespace.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>statefulset_lables: dict</dt>
+<dd>Dict with metrics for each stateful set.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>memory_allocatable: int</dt>
+<dd>Maximum memory allowed per node, expressed in bytes.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>cpu_allocatable: int</dt>
+<dd>Maximum memory allowed per node, expressed in minicores.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>pod_status: dict</dt>
+<dd>Dictionary with all the information.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<p>Returned dict format:</p>
+<dl class="docutils">
+<dt>{</dt>
+<dd><dl class="first last docutils">
+<dt>node_name1:{</dt>
+<dd><dl class="first docutils">
+<dt>pod-name1:{</dt>
+<dd><dl class="first docutils">
+<dt>metric-1: float,</dt>
+<dd>Metric-1 value.</dd>
+<dt>metric-2: float,</dt>
+<dd>Metric-2 value.</dd>
+</dl>
+<p class="last">…
+}</p>
+</dd>
+<dt>pod-name2:{</dt>
+<dd>…
+}</dd>
+</dl>
+<p class="last">}</p>
+</dd>
+<dt>node_name2:{</dt>
+<dd>…
+}</dd>
+</dl>
+</dd>
+</dl>
+<p>…
+}</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_rules">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_rules</code><span class="sig-paren">(</span><em>labels</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_rules"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_rules" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get rules from a dictionary of labels.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>labels: dict </dt>
+<dd>Dictionary with all rules.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>name: str</dt>
+<dd>Stateful Set name.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>rules: str list</dt>
+<dd>List with all rules to apply.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.get_statefulset_labels">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">get_statefulset_labels</code><span class="sig-paren">(</span><em>statefulset_info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#get_statefulset_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.get_statefulset_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets Stateful Set information.
+Returns information about labels, metrics and rules.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>statefulset_info: dict</dt>
+<dd>Dictionary with all Stateful Set information.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>statefulset_labels: dict</dt>
+<dd>Dictionary with only the information needed for the overscaler.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returned dict format:</dt>
+<dd><dl class="first last docutils">
+<dt>{</dt>
+<dd><dl class="first last docutils">
+<dt>statefulset_name1:{</dt>
+<dd><dl class="first docutils">
+<dt>overscaler: bool,</dt>
+<dd>Is overscaler active?</dd>
+<dt>current-count:int,</dt>
+<dd>Autoscale pause counter.</dd>
+<dt>autoscaler-count: int number,</dt>
+<dd>Number of waiting cycles after rescalling.</dd>
+<dt>max-replicas: int,</dt>
+<dd>Maximum number of replicas.</dd>
+<dt>min-replicas: int,</dt>
+<dd>Minimum number of replicas.</dd>
+<dt>metrics: [str, str…],</dt>
+<dd>List with all metrics to monitor.</dd>
+<dt>rules: [str,str…]</dt>
+<dd>List with all rules for this Stateful Set.</dd>
+</dl>
+<p class="last">…
+}</p>
+</dd>
+<dt>statefulset_name2:{</dt>
+<dd>…
+}</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>…
+}</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.rescale">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">rescale</code><span class="sig-paren">(</span><em>api</em>, <em>namespace</em>, <em>statefulset_name</em>, <em>action</em>, <em>max_nodes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#rescale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.rescale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets a new number of replicas for a given stateful set.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>api: pykube.http.HTTPClient</dt>
+<dd>Http client for requests to Kubernetes Api.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>namespace: str</dt>
+<dd>Project namespace.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>statefulset_name: dict</dt>
+<dd>Name of the statefulset to be rescaled.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>action: str</dt>
+<dd>Action to be realized. Can be “scale” o “reduce”, one pods more or one pod less, respectively.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>max_nodes: dict</dt>
+<dd>Maximum number of allowed nodes.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.start_proxy">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">start_proxy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#start_proxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.start_proxy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts local proxy to Kubernetes cluster, host: 127.0.0.1:8001</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="overscaler.overtools.update_current_count">
+<code class="descclassname">overscaler.overtools.</code><code class="descname">update_current_count</code><span class="sig-paren">(</span><em>api</em>, <em>namespace</em>, <em>statefulsets_labels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/overscaler/overtools.html#update_current_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#overscaler.overtools.update_current_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the “current-count” label of all Stateful sets.</p>
+<p>If its value is 0, this stateful set is ready to be scaled if is necessary.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>api: pykube.http.HTTPClient</dt>
+<dd>Http client for requests to Kubernetes Api.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>namespace: str</dt>
+<dd>Project namespace.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>statefulset_lables: dict</dt>
+<dd>Dict with metrics and rules of each stateful set.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-overscaler">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-overscaler" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">overscaler package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-overscaler.overcli">overscaler.overcli module</a></li>
+<li><a class="reference internal" href="#module-overscaler.overprint">overscaler.overprint module</a></li>
+<li><a class="reference internal" href="#module-overscaler.overtools">overscaler.overtools module</a></li>
+<li><a class="reference internal" href="#module-overscaler">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="modules.html"
+                        title="previous chapter">overscaler</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/overscaler.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="modules.html" title="overscaler"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Overscaler alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >overscaler</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Gleam AI.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

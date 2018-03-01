@@ -26,8 +26,12 @@ class TestOvertools(unittest.TestCase):
     """
 
     def setUp(self):
-        self.standard_node_metrics = json.load(open(standard_metrics_path('node_metrics.json')))
-        self.standard_pod_metrics = json.load(open(standard_metrics_path('pod_metrics.json')))
+        file_metrics=open(standard_metrics_path('node_metrics.json'))
+        self.standard_node_metrics = json.load(file_metrics)
+        file_metrics.close()
+        file_metrics = open(standard_metrics_path('pod_metrics.json'))
+        self.standard_pod_metrics = json.load(file_metrics)
+        file_metrics.close()
         self.dir_fixtures_cluster = os.walk(fixtures_path('cluster_info') + '/')
         self.dir_fixtures_statefulset = os.walk(fixtures_path('statefulset_info') + '/')
 
@@ -100,7 +104,8 @@ class TestOvertools(unittest.TestCase):
         for root, dirs, files in self.dir_fixtures_cluster:
             for file in files:
                 print("Test file: "+file)
-                test_json = json.load(open(root+file))
+                f=open(root+file)
+                test_json = json.load(f)
                 output_test = ot.get_cluster_labels(test_json['input'])
                 assert test_json['output']['autoscale'] == output_test[0]
                 assert test_json['output']['max_nodes'] == output_test[1]
@@ -113,6 +118,7 @@ class TestOvertools(unittest.TestCase):
                         assert i in output_test[3]
                 else:
                     assert len(output_test[3])==0
+                f.close()
 
     def test_get_statefulset_labels(self):
         """
@@ -126,7 +132,8 @@ class TestOvertools(unittest.TestCase):
         for root, dirs, files in self.dir_fixtures_statefulset:
             for file in files:
                 print("Test file: "+file)
-                test_json = json.load(open(root+file))
+                f = open(root + file)
+                test_json = json.load(f)
                 output_test = ot.get_statefulset_labels(test_json['input'])
                 for i in test_json['output']:
                     if i['empty']:
@@ -148,6 +155,7 @@ class TestOvertools(unittest.TestCase):
                         elif i['metrics']:
                             for j in output_test[i['app']]['metrics']:
                                 assert j in output_test[i['app']]['metrics']
+                    f.close()
 
 
 
