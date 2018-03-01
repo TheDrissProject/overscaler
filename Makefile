@@ -26,7 +26,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -f .coverage
 
 test: ## run tests quickly with the default Python
-	python setup.py test
+	python3 setup.py test
 	rm -fr .eggs/
 
 coverage: ## check code coverage quickly with the default Python
