@@ -7,8 +7,14 @@ Overscaler
 .. image:: https://circleci.com/gh/GleamAI/overscaler.svg?style=shield&circle-token=0a5ec2f06068e12bd8924db36ac00c24a8eee40a
     :target: https://circleci.com/gh/GleamAI/overscaler
 
+.. image:: https://readthedocs.org/projects/overscaler/badge/?version=latest
+	:target: http://overscaler.readthedocs.io/en/latest/?badge=latest
+	:alt: Documentation Status
+                
+
 Stateful sets autoscaler for Google Kubernetes Engine.
 
+* Documentation: https://overscaler.readthedocs.io/en/develop.
 
 
 How it works
