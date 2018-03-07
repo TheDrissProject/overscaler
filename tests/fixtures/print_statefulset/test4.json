@@ -1,0 +1,6 @@
+{
+    "statefulset_name":{          
+        "metrics":[],     
+        "rules": []            
+        }
+}

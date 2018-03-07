@@ -1,0 +1,174 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>overscaler.overprint &#8212; Overscaler alpha documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Overscaler alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for overscaler.overprint</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">gmtime</span><span class="p">,</span> <span class="n">strftime</span>
+<span class="kn">import</span> <span class="nn">click</span>
+
+<span class="c1"># Print Functions.</span>
+
+<div class="viewcode-block" id="print_cluster_info"><a class="viewcode-back" href="../../overscaler.html#overscaler.overprint.print_cluster_info">[docs]</a><span class="k">def</span> <span class="nf">print_cluster_info</span><span class="p">(</span><span class="n">autoscale</span><span class="p">,</span><span class="n">current_nodes</span><span class="p">,</span> <span class="n">max_nodes</span><span class="p">,</span><span class="n">min_nodes</span><span class="p">,</span><span class="n">metrics</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prints Cluster information by console.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - autoscale: bool</span>
+<span class="sd">            True if the node autoscale is active.</span>
+<span class="sd">        - current_nodes: int </span>
+<span class="sd">            Number of current nodes.</span>
+<span class="sd">        - max_nodes: int</span>
+<span class="sd">            Maximum number of allowed nodes.</span>
+<span class="sd">        - min_nodes: int</span>
+<span class="sd">            Minimum number of allowed nodes.</span>
+<span class="sd">        - metrics: array list</span>
+<span class="sd">            List of cluster metrics to monitor.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO CLUSTER] Autoscaler is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">autoscale</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; in this cluster&quot;</span><span class="p">)</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO CLUSTER] Maximum possible nodes: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">max_nodes</span><span class="p">))</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO CLUSTER] Minimum possible nodes: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">min_nodes</span><span class="p">))</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO CLUSTER] Nodes currently running: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">current_nodes</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">metrics</span><span class="p">:</span>
+        <span class="n">cont</span><span class="o">=</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO CLUSTER METRICS] Metric &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cont</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span></div>
+            <span class="n">cont</span><span class="o">+=</span><span class="mi">1</span>
+
+    <span class="c1"># click.echo(strftime(&quot;%Y-%m-%d %H:%M:%S&quot;, gmtime()) + &quot; [INFO CLUSTER] Overscaler is &quot; + str(overscaler) + &quot; in this cluster&quot;)</span>
+    <span class="c1"># if overscaler == True:</span>
+    <span class="c1">#     if rules:</span>
+    <span class="c1">#         for i in range(len(rules)):</span>
+    <span class="c1">#             click.echo(strftime(&quot;%Y-%m-%d %H:%M:%S&quot;, gmtime()) + &quot; [INFO CLUSTER RULES] Rule &quot; + str(i + 1) + &quot;: &quot; + str(</span>
+    <span class="c1">#                 rules[i]).replace(&quot;_&quot;, &quot; &quot;))</span>
+
+
+<div class="viewcode-block" id="print_statefulset_info"><a class="viewcode-back" href="../../overscaler.html#overscaler.overprint.print_statefulset_info">[docs]</a><span class="k">def</span> <span class="nf">print_statefulset_info</span><span class="p">(</span><span class="n">statefulset_labels</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prints Stateful Set information by console.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - statefulset_lables: dict</span>
+<span class="sd">            Dictionary with metrics and rules of each stateful set.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">statefulset_labels</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;metrics&quot;</span><span class="p">]:</span>
+            <span class="n">cont</span><span class="o">=</span><span class="mi">1</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;metrics&quot;</span><span class="p">]:</span>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO POD METRICS] Metric &quot;</span> <span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">cont</span><span class="p">)</span><span class="o">+</span> <span class="s2">&quot; for &quot;</span><span class="o">+</span><span class="n">i</span> <span class="o">+</span><span class="s2">&quot;: &quot;</span> <span class="o">+</span> <span class="n">j</span><span class="p">)</span>
+                <span class="n">cont</span><span class="o">+=</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;rules&quot;</span><span class="p">]:</span>
+            <span class="n">cont</span><span class="o">=</span><span class="mi">1</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;rules&quot;</span><span class="p">]:</span>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO POD RULES] Rule &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cont</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; for &quot;</span><span class="o">+</span><span class="n">i</span> <span class="o">+</span><span class="s2">&quot;: &quot;</span> \
+                      <span class="o">+</span> <span class="n">j</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span></div>
+                <span class="n">cont</span><span class="o">+=</span><span class="mi">1</span>
+
+
+<div class="viewcode-block" id="print_node_status"><a class="viewcode-back" href="../../overscaler.html#overscaler.overprint.print_node_status">[docs]</a><span class="k">def</span> <span class="nf">print_node_status</span><span class="p">(</span><span class="n">node_status</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prints Node status by console.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - node_status: dict</span>
+<span class="sd">            Dictionary with all the information about the status of each node.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot; [STATUS INFO] Node Status:&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">node_status</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">node_status</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span></div>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">()))</span><span class="o">+</span><span class="s2">&quot; [NODE STATUS] Node &quot;</span> <span class="o">+</span><span class="n">i</span><span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span><span class="n">j</span><span class="o">+</span><span class="s2">&quot; : &quot;</span> <span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">node_status</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
+
+
+<div class="viewcode-block" id="print_pod_status"><a class="viewcode-back" href="../../overscaler.html#overscaler.overprint.print_pod_status">[docs]</a><span class="k">def</span> <span class="nf">print_pod_status</span><span class="p">(</span><span class="n">pod_status</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prints Pod status by console.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - pod_status: dict</span>
+<span class="sd">            Dictionary with all the information about the status of each pod.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot; [STATUS INFO] Pods Status:&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pod_status</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">pod_status</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">pod_status</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]:</span></div>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">()))</span><span class="o">+</span><span class="s2">&quot; [POD STATUS] Node &quot;</span> <span class="o">+</span><span class="n">i</span><span class="o">+</span> <span class="s2">&quot; Pod &quot;</span> <span class="o">+</span><span class="n">j</span><span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span><span class="n">k</span><span class="o">+</span><span class="s2">&quot;= &quot;</span> <span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">pod_status</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="p">]))</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Overscaler alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Gleam AI.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

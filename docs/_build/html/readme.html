@@ -1,0 +1,223 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Overscaler &#8212; Overscaler alpha documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Welcome to Overscaler’s documentation!" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Overscaler’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Overscaler alpha documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="overscaler">
+<h1>Overscaler<a class="headerlink" href="#overscaler" title="Permalink to this headline">¶</a></h1>
+<p>Stateful sets autoscaler for Google Kubernetes Engine.</p>
+<div class="section" id="how-it-works">
+<h2>How it works<a class="headerlink" href="#how-it-works" title="Permalink to this headline">¶</a></h2>
+<p>Since Kubernetes lacks a autoscale system for Stateful Set pods, it is necessary to implement a new service to play this role. Overscaler may run externally or be deployed as a new Stateful Set within the cluster, in any case, permissions are required to access Kubernetes internal services.</p>
+<dl class="docutils">
+<dt>Monitoring and autoscaling is based on Stateful Sets labels and each one should include a series of labels that define:</dt>
+<dd><ul class="first last simple">
+<li>Overscaler is On or Off for this Stateful Set</li>
+<li>Metrics that will be monitored.</li>
+<li>Rules that will be applied to rescale.</li>
+</ul>
+</dd>
+</dl>
+<p>Periodically, Overscaler scans full cluster to obtain the Stateful Sets labels and, after checking them, starts monitoring each Pod.</p>
+<p>During this monitoring, Overscaler realizes a set of GET requests to an internal Kubernete service called <a class="reference external" href="https://github.com/kubernetes/heapster">Heapster</a> that returns metrics related to Pods status, and checks if any limit established by the rules is exceeded to rescale the respective Stateful Set.</p>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="login-and-cluster-credentials">
+<h3>Login and cluster credentials<a class="headerlink" href="#login-and-cluster-credentials" title="Permalink to this headline">¶</a></h3>
+<p>The first step is to login with gcloud and get the cluster credentials to monitor. To login run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> gcloud auth login
+</pre></div>
+</div>
+<p>Or if you prefer to log in with a service account:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> gcloud auth activate-service-account --key-file /path/to/credentials.json
+</pre></div>
+</div>
+<p>For more information about gcloud login with visit <a class="reference external" href="https://cloud.google.com/sdk/gcloud/reference/auth/login">login</a></p>
+<p>To get credentials run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> gcloud container clusters get-credentials CLUSTER_NAME --zone ZONE_NAME --project PROJECT_NAME
+</pre></div>
+</div>
+</div>
+<div class="section" id="run-overscaler">
+<h3>Run Overscaler<a class="headerlink" href="#run-overscaler" title="Permalink to this headline">¶</a></h3>
+<p>Usage:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> overscaler start <span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<p>Start Overscaler to monitor and autoscale.</p>
+<p>Monitoring and autoscaling are based on labels. Each Stateful Set must
+include a series of labels that define:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Overscaler is On or Off for this Stateful Set.</li>
+<li>Metrics that will be monitored.</li>
+<li>Rules that will be applied to rescale.</li>
+</ul>
+</div></blockquote>
+<dl class="docutils">
+<dt>Options:</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-p<var>r</var></span>, <span class="option">--project <var>TEXT</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>Project name.  [required]</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-c</span>, <span class="option">--cluster <var>TEXT</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>Cluster name.  [required]</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-z</span>, <span class="option">--zone <var>TEXT</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>Project zone name  [required]</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-n</span>, <span class="option">--namespace <var>TEXT</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>Cluster namespace, default to “default”.</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--refresh_cluster <var>INTEGER</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>Refresh period for cluster labels (seconds).
+Default to 600.</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--refresh_statefulset <var>INTEGER</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>Refresh period for stateful set labels
+(seconds).
+Default to 300. (seconds).</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--refresh_auth <var>INTEGER</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>Refresh period for Api authentication
+(seconds).
+Default to 300. (seconds).</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--help</span></kbd></td>
+<td>Show this message and exit.</td></tr>
+</tbody>
+</table>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline">¶</a></h2>
+<p>This package was created with <a class="reference external" href="https://github.com/audreyr/cookiecutter">Cookiecutter</a> and the <a class="reference external" href="https://github.com/audreyr/cookiecutter-pypackage">audreyr/cookiecutter-pypackage</a> project template.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Overscaler</a><ul>
+<li><a class="reference internal" href="#how-it-works">How it works</a></li>
+<li><a class="reference internal" href="#usage">Usage</a><ul>
+<li><a class="reference internal" href="#login-and-cluster-credentials">Login and cluster credentials</a></li>
+<li><a class="reference internal" href="#run-overscaler">Run Overscaler</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#credits">Credits</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Overscaler’s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="installation.html"
+                        title="next chapter">Installation</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/readme.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Overscaler’s documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Overscaler alpha documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Gleam AI.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

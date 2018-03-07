@@ -1,0 +1,16 @@
+{
+  "input": {
+    "items": [
+      {
+        "metadata": {
+        }
+      }
+    ]
+  },
+  "output": [{
+    "empty":true
+  }
+  ]
+}
+
+

@@ -1,0 +1,732 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>overscaler.overtools &#8212; Overscaler alpha documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Overscaler alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for overscaler.overtools</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">pykube</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">gmtime</span><span class="p">,</span> <span class="n">strftime</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">click</span>
+
+<span class="c1"># JSON files with available metrics</span>
+<span class="n">standard_node_metrics</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;node_metrics.json&#39;</span><span class="p">)))</span>
+<span class="n">standard_pod_metrics</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;pod_metrics.json&#39;</span><span class="p">)))</span>
+
+
+
+<span class="c1"># Auxiliary Functions.</span>
+
+
+<div class="viewcode-block" id="start_proxy"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.start_proxy">[docs]</a><span class="k">def</span> <span class="nf">start_proxy</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Starts local proxy to Kubernetes cluster, host: 127.0.0.1:8001</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">bash_proxy</span> <span class="o">=</span> <span class="s2">&quot;kubectl proxy &amp;&quot;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s1">&#39;bash&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="n">bash_proxy</span><span class="p">])</span>
+</div>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+
+
+<div class="viewcode-block" id="check_rule"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.check_rule">[docs]</a><span class="k">def</span> <span class="nf">check_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span><span class="n">typ</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks the rules are well written.</span>
+
+<span class="sd">        Format rule: \&quot;metric_greater|lower_limit_scale|reduce\&quot;</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - rule: str </span>
+<span class="sd">            Rule to check.</span>
+<span class="sd">        - type: str</span>
+<span class="sd">            Rule type, can be for node or pod</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - check: bool</span>
+<span class="sd">            True if the rule has correct format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rule</span><span class="o">=</span><span class="n">rule</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="n">check</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">typ</span><span class="o">==</span><span class="s2">&quot;pod&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span><span class="o">==</span><span class="mi">4</span> <span class="ow">and</span> <span class="n">rule</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">standard_pod_metrics</span> \
+            <span class="ow">and</span> <span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;greater&quot;</span> <span class="ow">or</span> <span class="n">rule</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;lower&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rule</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>\
+            <span class="ow">and</span> <span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;scale&quot;</span> <span class="ow">or</span> <span class="n">rule</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;reduce&quot;</span><span class="p">)</span> <span class="p">:</span>
+                 <span class="c1"># or len(list(filter(re.compile(&quot;and-.*&quot;).search, list(rule[3])))) &gt; 0):</span>
+            <span class="n">check</span><span class="o">=</span><span class="kc">True</span>
+    <span class="k">if</span> <span class="n">typ</span><span class="o">==</span><span class="s2">&quot;node&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span><span class="o">==</span><span class="mi">4</span> <span class="ow">and</span> <span class="n">rule</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">standard_node_metrics</span> \
+            <span class="ow">and</span> <span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;greater&quot;</span> <span class="ow">or</span> <span class="n">rule</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;lower&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rule</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>\
+            <span class="ow">and</span> <span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;scale&quot;</span> <span class="ow">or</span> <span class="n">rule</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;reduce&quot;</span><span class="p">)</span> <span class="p">:</span>
+            <span class="c1">#len(list(filter(re.compile(&quot;and-.*&quot;).search, list(rule[3])))) &gt; 0):</span>
+            <span class="n">check</span><span class="o">=</span><span class="kc">True</span></div>
+    <span class="k">return</span> <span class="n">check</span>
+
+
+<div class="viewcode-block" id="get_num_nodes"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_num_nodes">[docs]</a><span class="k">def</span> <span class="nf">get_num_nodes</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns number of active nodes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - num_nodes: int</span>
+<span class="sd">            Number of current nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">num_nodes</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span>
+                       <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Error to get active nodes.&quot;</span><span class="p">)</span>
+        <span class="n">num_nodes</span><span class="o">=</span><span class="mi">0</span>
+</div>
+    <span class="k">return</span> <span class="n">num_nodes</span>
+
+<div class="viewcode-block" id="get_mean"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_mean">[docs]</a><span class="k">def</span> <span class="nf">get_mean</span><span class="p">(</span><span class="n">metric</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the arithmetic mean of a metric.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - metric: dict </span>
+<span class="sd">            Dictionary with status metrics.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - mean: float</span>
+<span class="sd">            Arithmetic mean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">mean</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">cont</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">metric</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;value&#39;</span> <span class="ow">in</span> <span class="n">i</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+            <span class="n">mean</span><span class="o">+=</span><span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="n">cont</span><span class="o">+=</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="n">cont</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mean</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">mean</span><span class="o">/</span><span class="n">cont</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</div>
+    <span class="k">return</span> <span class="n">mean</span>
+
+
+
+<span class="c1"># Get Labels Functions.</span>
+
+<div class="viewcode-block" id="get_metrics"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_metrics">[docs]</a><span class="k">def</span> <span class="nf">get_metrics</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">typ</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get metrics from a dictionary of labels.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - labels: dict</span>
+<span class="sd">            Dictionary with all metrics.</span>
+<span class="sd">        - typ: str</span>
+<span class="sd">            Metrics type, &quot;pod&quot; or &quot;cluster&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - metrics: str lst</span>
+<span class="sd">            List with metrics to monitor.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">typ</span><span class="o">==</span><span class="s2">&quot;pod&quot;</span><span class="p">:</span>
+        <span class="n">available_metrics</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">standard_pod_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">typ</span><span class="o">==</span><span class="s2">&quot;cluster&quot;</span><span class="p">:</span>
+        <span class="n">available_metrics</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">standard_node_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+
+    <span class="k">if</span> <span class="s2">&quot;all-metrics&quot;</span> <span class="ow">in</span> <span class="n">labels</span> <span class="ow">and</span> \
+                    <span class="n">labels</span><span class="p">[</span><span class="s2">&quot;all-metrics&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;true&quot;</span><span class="p">:</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">available_metrics</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;metric-.*&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">,</span> <span class="n">labels</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">available_metrics</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Wrong value for &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">metrics</span>
+
+<div class="viewcode-block" id="get_rules"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_rules">[docs]</a><span class="k">def</span> <span class="nf">get_rules</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get rules from a dictionary of labels.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - labels: dict </span>
+<span class="sd">            Dictionary with all rules.</span>
+<span class="sd">        - name: str</span>
+<span class="sd">            Stateful Set name.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - rules: str list</span>
+<span class="sd">            List with all rules to apply.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rules</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;rule-.*&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">,</span> <span class="n">labels</span><span class="p">)):</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">check</span> <span class="o">=</span> <span class="n">check_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="s2">&quot;pod&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+            <span class="n">rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span>
+                           <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Wrong value for &quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s2">&quot; of Stateful Set &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span> <span class="n">rule</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">rules</span>
+
+
+<div class="viewcode-block" id="get_cluster_labels"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_cluster_labels">[docs]</a><span class="k">def</span> <span class="nf">get_cluster_labels</span><span class="p">(</span><span class="n">cluster_info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets cluster information.</span>
+
+<span class="sd">    Returns information about the number of nodes and their limits,</span>
+<span class="sd">    node autoscale function and labels.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - cluster_info: dict</span>
+<span class="sd">           Dictionary with all cluster information.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - autoscale: bool</span>
+<span class="sd">            True if node autoscale is active.</span>
+<span class="sd">        - max_nodes: int</span>
+<span class="sd">            Maximum number of allowed nodes.</span>
+<span class="sd">        - min_nodes: int</span>
+<span class="sd">            Minimum number of allowed nodes.</span>
+<span class="sd">        - metrics: list</span>
+<span class="sd">            List of cluster metrics to monitor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">autoscale</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">max_nodes</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">min_nodes</span><span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1">#    rules = []</span>
+<span class="c1">#    overscaler = False</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;nodePools&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;autoscaling&quot;</span><span class="p">][</span><span class="s2">&quot;enabled&quot;</span><span class="p">],</span><span class="nb">bool</span><span class="p">)</span> \
+            <span class="ow">and</span> <span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;nodePools&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;autoscaling&quot;</span><span class="p">][</span><span class="s2">&quot;minNodeCount&quot;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span> \
+            <span class="ow">and</span> <span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;nodePools&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;autoscaling&quot;</span><span class="p">][</span><span class="s2">&quot;maxNodeCount&quot;</span><span class="p">]</span><span class="o">&gt;=</span><span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;nodePools&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;autoscaling&quot;</span><span class="p">][</span><span class="s2">&quot;minNodeCount&quot;</span><span class="p">]:</span>
+
+            <span class="n">autoscale</span> <span class="o">=</span> <span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;nodePools&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;autoscaling&quot;</span><span class="p">][</span><span class="s2">&quot;enabled&quot;</span><span class="p">]</span>
+            <span class="n">max_nodes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;nodePools&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;autoscaling&quot;</span><span class="p">][</span><span class="s2">&quot;maxNodeCount&quot;</span><span class="p">])</span>
+            <span class="n">min_nodes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;nodePools&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;autoscaling&quot;</span><span class="p">][</span><span class="s2">&quot;minNodeCount&quot;</span><span class="p">])</span>
+            <span class="n">metrics</span><span class="o">=</span><span class="n">get_metrics</span><span class="p">(</span><span class="n">cluster_info</span><span class="p">[</span><span class="s2">&quot;resourceLabels&quot;</span><span class="p">],</span><span class="s2">&quot;cluster&quot;</span><span class="p">)</span>
+
+
+<span class="c1">#            if &quot;overscaler&quot; in list(cluster_info[&quot;resourceLabels&quot;].keys())\</span>
+<span class="c1">#                and cluster_info[&quot;resourceLabels&quot;][&quot;overscaler&quot;] == &quot;true&quot;:</span>
+<span class="c1">#                overscaler = True</span>
+
+                <span class="c1"># if len(list(filter(re.compile(&quot;rule-.*&quot;).search, list(cluster_info[&quot;resourceLabels&quot;].keys())))) &gt; 0:</span>
+                <span class="c1">#     for i in list(filter(re.compile(&quot;rule-.*&quot;).search, list(cluster_info[&quot;resourceLabels&quot;].keys()))):</span>
+                <span class="c1">#         rule = cluster_info[&quot;resourceLabels&quot;][i]</span>
+                <span class="c1">#         check=check_rule(rule,&quot;node&quot;)</span>
+                <span class="c1">#         if check:</span>
+                <span class="c1">#             rules.append(rule)</span>
+                <span class="c1">#         else:</span>
+                <span class="c1">#             click.echo(strftime(&quot;%Y-%m-%d %H:%M:%S&quot;, gmtime()) + &quot; [ERROR] Wrong built rule: &quot; +str(rule))</span>
+                <span class="c1"># else:</span>
+                <span class="c1">#     click.echo(strftime(&quot;%Y-%m-%d %H:%M:%S&quot;, gmtime()) + &quot; [ERROR] Cluster labels without rules or with rules incorrectly created.&quot;)</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">autoscale</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">max_nodes</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">min_nodes</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="c1">#        rules = []</span>
+<span class="c1">#        overscaler = False</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span>
+                       <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Cluster without labels or with labels incorrectly created.&quot;</span><span class="p">)</span>
+
+
+<span class="c1">#    return autoscale, max_nodes,min_nodes, overscaler, metrics, rules</span></div>
+    <span class="k">return</span> <span class="n">autoscale</span><span class="p">,</span> <span class="n">max_nodes</span><span class="p">,</span><span class="n">min_nodes</span><span class="p">,</span> <span class="n">metrics</span>
+
+
+<div class="viewcode-block" id="get_statefulset_labels"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_statefulset_labels">[docs]</a><span class="k">def</span> <span class="nf">get_statefulset_labels</span><span class="p">(</span><span class="n">statefulset_info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets Stateful Set information.</span>
+<span class="sd">    Returns information about labels, metrics and rules.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - statefulset_info: dict</span>
+<span class="sd">            Dictionary with all Stateful Set information.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - statefulset_labels: dict</span>
+<span class="sd">             Dictionary with only the information needed for the overscaler.</span>
+
+<span class="sd">    Returned dict format:</span>
+<span class="sd">     {</span>
+<span class="sd">        statefulset_name1:{</span>
+<span class="sd">            overscaler: bool,</span>
+<span class="sd">                Is overscaler active? </span>
+<span class="sd">            current-count:int,</span>
+<span class="sd">                Autoscale pause counter. </span>
+<span class="sd">            autoscaler-count: int number,</span>
+<span class="sd">                Number of waiting cycles after rescalling.</span>
+<span class="sd">            max-replicas: int,</span>
+<span class="sd">                Maximum number of replicas.</span>
+<span class="sd">            min-replicas: int,</span>
+<span class="sd">                Minimum number of replicas.</span>
+<span class="sd">            metrics: [str, str...],</span>
+<span class="sd">                List with all metrics to monitor.</span>
+<span class="sd">            rules: [str,str...]</span>
+<span class="sd">                List with all rules for this Stateful Set.</span>
+
+<span class="sd">            ...</span>
+<span class="sd">            }</span>
+<span class="sd">        statefulset_name2:{</span>
+<span class="sd">            ...</span>
+<span class="sd">            }</span>
+
+<span class="sd">    ...</span>
+<span class="sd">    }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">statefulset_labels</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">statefulset_info</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">]:</span>
+            <span class="n">rules</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">overscaler</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">current_count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">autoscaler_count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">max_replicas</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">min_replicas</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;app&quot;</span><span class="p">]</span>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO] Getting metrics for &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+                <span class="n">metrics</span><span class="o">=</span><span class="n">get_metrics</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">],</span><span class="s2">&quot;pod&quot;</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;overscaler&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;true&quot;</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;min-replicas&quot;</span><span class="p">])</span><span class="o">&gt;</span><span class="mi">0</span>  \
+                        <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;max-replicas&quot;</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;min-replicas&quot;</span><span class="p">])</span> \
+                        <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;autoscaler-count&quot;</span><span class="p">])</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;current-count&quot;</span><span class="p">])</span><span class="o">&gt;=</span><span class="mi">0</span>  \
+                        <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;rescaling&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;true&quot;</span><span class="p">,</span><span class="s2">&quot;false&quot;</span><span class="p">]:</span>
+
+                        <span class="n">overscaler</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">current_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;current-count&quot;</span><span class="p">])</span>
+                        <span class="n">autoscaler_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;autoscaler-count&quot;</span><span class="p">])</span>
+                        <span class="n">max_replicas</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;max-replicas&quot;</span><span class="p">])</span>
+                        <span class="n">min_replicas</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;min-replicas&quot;</span><span class="p">])</span>
+                        <span class="n">rules</span><span class="o">=</span><span class="n">get_rules</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">],</span><span class="n">name</span><span class="p">)</span>
+
+                        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [INFO POD] Stateful Set labels obtained correctly: &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+
+                    <span class="k">elif</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="s2">&quot;overscaler&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;true&quot;</span><span class="p">:</span>
+                        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Overscaler label is not true in &quot;</span><span class="o">+</span><span class="n">name</span><span class="o">+</span><span class="s2">&quot;. Autoscale off.&quot;</span><span class="p">)</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Wrong value for overscaler labels of Stateful Set &quot;</span><span class="o">+</span><span class="n">name</span><span class="o">+</span><span class="s2">&quot;. Autoscale off.&quot;</span><span class="p">)</span>
+
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot; [ERROR] Error to get labels for &quot;</span><span class="o">+</span><span class="n">name</span><span class="o">+</span><span class="s2">&quot;. Are all overscaler labels correctly written?&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">overscaler</span><span class="o">==</span><span class="kc">True</span> <span class="ow">or</span> <span class="n">metrics</span><span class="p">:</span>
+                    <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;overscaler&#39;</span><span class="p">:</span> <span class="n">overscaler</span><span class="p">,</span> <span class="s1">&#39;current-count&#39;</span><span class="p">:</span> <span class="n">current_count</span><span class="p">,</span>
+                                            <span class="s1">&#39;autoscaler-count&#39;</span><span class="p">:</span> <span class="n">autoscaler_count</span><span class="p">,</span> <span class="s1">&#39;max-replicas&#39;</span><span class="p">:</span> <span class="n">max_replicas</span><span class="p">,</span>
+                                            <span class="s1">&#39;min-replicas&#39;</span><span class="p">:</span> <span class="n">min_replicas</span><span class="p">,</span> <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="p">,</span> <span class="s1">&#39;rules&#39;</span><span class="p">:</span> <span class="n">rules</span><span class="p">}</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span>
+                               <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Stateful Set without name&quot;</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span>
+                       <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Stateful Set info empty&quot;</span><span class="p">)</span>
+</div>
+    <span class="k">return</span> <span class="n">statefulset_labels</span>
+
+
+
+
+
+
+
+<span class="c1"># Get Status Functions.</span>
+
+
+<div class="viewcode-block" id="get_node_status"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_node_status">[docs]</a><span class="k">def</span> <span class="nf">get_node_status</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets Node status.</span>
+
+<span class="sd">    Returns information about state of all nodes.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - metrics: str list</span>
+<span class="sd">            List of metrics to monitor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - node_status: dict</span>
+<span class="sd">            Dictionary with all the information.</span>
+
+<span class="sd">    Returned dict format:</span>
+<span class="sd">     {</span>
+<span class="sd">        node_name1:{</span>
+<span class="sd">            metric-1: float,</span>
+<span class="sd">                Metric-1 value.</span>
+<span class="sd">            metric-2: float,</span>
+<span class="sd">                Metric-2 value.</span>
+
+<span class="sd">        ...</span>
+<span class="sd">        }</span>
+
+<span class="sd">        node_name2:{</span>
+<span class="sd">        ...</span>
+<span class="sd">        }</span>
+<span class="sd">    </span>
+<span class="sd">    ... </span>
+<span class="sd">    }</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">node_status</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="n">max_node_memory</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/&#39;</span> <span class="o">+</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span>
+            <span class="s1">&#39;/metrics/memory/node_allocatable&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">])</span>
+        <span class="n">max_node_cpu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/&#39;</span> <span class="o">+</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span>
+            <span class="s1">&#39;/metrics/cpu/node_allocatable&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="n">status</span><span class="o">=</span><span class="p">{}</span>
+            <span class="k">try</span><span class="p">:</span>
+
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="s2">&quot;memory-usage-percent&quot;</span><span class="p">:</span>
+                        <span class="n">memory_usage</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/&#39;</span><span class="o">+</span><span class="n">i</span><span class="o">+</span><span class="s1">&#39;/metrics/memory/working_set&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">]</span>
+                        <span class="n">status</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">get_mean</span><span class="p">(</span><span class="n">memory_usage</span><span class="p">)</span><span class="o">/</span><span class="n">max_node_memory</span> <span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">j</span> <span class="o">==</span> <span class="s2">&quot;cpu-usage-percent&quot;</span><span class="p">:</span>
+                        <span class="n">cpu_usage</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/&#39;</span><span class="o">+</span><span class="n">i</span><span class="o">+</span><span class="s1">&#39;/metrics/cpu/usage_rate&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">]</span>
+                        <span class="n">status</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">get_mean</span><span class="p">(</span><span class="n">cpu_usage</span><span class="p">)</span><span class="o">/</span><span class="n">max_node_cpu</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">standard_node_metrics</span><span class="p">:</span>
+                        <span class="n">status</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_mean</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/nodes/&#39;</span><span class="o">+</span><span class="n">i</span><span class="o">+</span><span class="s1">&#39;/metrics/&#39;</span><span class="o">+</span><span class="n">standard_node_metrics</span><span class="p">[</span><span class="n">j</span><span class="p">])</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot; [ERROR] Error to get status for node: &quot;</span> <span class="o">+</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">status</span><span class="o">=</span><span class="p">{}</span>
+            <span class="n">node_status</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">status</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Error to get status for cluster&quot;</span><span class="p">)</span>
+        <span class="n">node_status</span><span class="o">=</span><span class="p">{}</span>
+        <span class="n">max_node_cpu</span><span class="o">=</span><span class="mi">0</span>
+        <span class="n">max_node_memory</span><span class="o">=</span><span class="mi">0</span></div>
+    <span class="k">return</span> <span class="n">node_status</span><span class="p">,</span> <span class="n">max_node_cpu</span><span class="p">,</span> <span class="n">max_node_memory</span>
+
+
+
+<div class="viewcode-block" id="get_pod_status"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.get_pod_status">[docs]</a><span class="k">def</span> <span class="nf">get_pod_status</span><span class="p">(</span><span class="n">api</span><span class="p">,</span><span class="n">namespace</span><span class="p">,</span><span class="n">statefulset_labels</span><span class="p">,</span><span class="n">memory_allocatable</span><span class="p">,</span> <span class="n">cpu_allocatable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets Pod status.</span>
+
+<span class="sd">    Returns information about state of all stateful set pods.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - api: pykube.http.HTTPClient</span>
+<span class="sd">            Http client for requests to Kubernetes Api.</span>
+<span class="sd">        - namespace: str</span>
+<span class="sd">            Project namespace.</span>
+<span class="sd">        - statefulset_lables: dict</span>
+<span class="sd">            Dict with metrics for each stateful set.</span>
+<span class="sd">        - memory_allocatable: int</span>
+<span class="sd">            Maximum memory allowed per node, expressed in bytes.</span>
+<span class="sd">        - cpu_allocatable: int</span>
+<span class="sd">            Maximum memory allowed per node, expressed in minicores.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - pod_status: dict</span>
+<span class="sd">            Dictionary with all the information. </span>
+
+<span class="sd">    Returned dict format:</span>
+
+<span class="sd">    {</span>
+<span class="sd">     node_name1:{</span>
+<span class="sd">        pod-name1:{</span>
+<span class="sd">            metric-1: float,</span>
+<span class="sd">                Metric-1 value.</span>
+<span class="sd">            metric-2: float,</span>
+<span class="sd">                Metric-2 value.</span>
+
+<span class="sd">            ...</span>
+<span class="sd">            }</span>
+
+<span class="sd">        pod-name2:{</span>
+<span class="sd">            ...</span>
+<span class="sd">            }</span>
+
+<span class="sd">        }</span>
+
+<span class="sd">     node_name2:{</span>
+<span class="sd">         ...</span>
+<span class="sd">         }</span>
+
+<span class="sd">    ...</span>
+<span class="sd">    }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pre_set</span> <span class="o">=</span> <span class="n">pykube</span><span class="o">.</span><span class="n">Pod</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">api</span><span class="p">)</span>
+
+    <span class="n">pod_status</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">statefulset_labels</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">]:</span>
+
+                <span class="n">node_name</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;spec&#39;</span><span class="p">][</span><span class="s1">&#39;nodeName&#39;</span><span class="p">]</span>
+                <span class="n">pod_name</span><span class="o">=</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">node_name</span> <span class="ow">in</span> <span class="n">pod_status</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">pod_status</span><span class="p">[</span><span class="n">node_name</span><span class="p">]</span><span class="o">=</span><span class="p">{}</span>
+                <span class="k">if</span> <span class="n">pod_name</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">statefulset_labels</span><span class="p">:</span>
+                    <span class="n">metrics</span><span class="o">=</span> <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">pod_name</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]][</span><span class="s1">&#39;metrics&#39;</span><span class="p">]</span>
+                    <span class="n">status</span><span class="o">=</span><span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="s2">&quot;memory-usage-percent&quot;</span><span class="p">:</span>
+                                <span class="n">memory_usage</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/&quot;</span><span class="o">+</span><span class="n">namespace</span><span class="o">+</span><span class="s2">&quot;/pods/&quot;</span> <span class="o">+</span> <span class="n">pod_name</span> <span class="o">+</span> <span class="s2">&quot;/metrics/memory/working_set&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">]</span>
+                                <span class="n">status</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">get_mean</span><span class="p">(</span><span class="n">memory_usage</span><span class="p">)</span> <span class="o">/</span> <span class="n">memory_allocatable</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">j</span> <span class="o">==</span> <span class="s2">&quot;cpu-usage-percent&quot;</span><span class="p">:</span>
+                                <span class="n">cpu_usage</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/&quot;</span><span class="o">+</span><span class="n">namespace</span><span class="o">+</span><span class="s2">&quot;/pods/&quot;</span> <span class="o">+</span> <span class="n">pod_name</span> <span class="o">+</span> <span class="s2">&quot;/metrics/cpu/usage_rate&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">]</span>
+                                <span class="n">status</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">get_mean</span><span class="p">(</span><span class="n">cpu_usage</span><span class="p">)</span> <span class="o">/</span> <span class="n">cpu_allocatable</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">standard_pod_metrics</span><span class="p">:</span>
+                                <span class="n">status</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">=</span><span class="n">get_mean</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http://localhost:8001/api/v1/namespaces/kube-system/services/heapster/proxy/api/v1/model/namespaces/&quot;</span><span class="o">+</span><span class="n">namespace</span><span class="o">+</span><span class="s2">&quot;/pods/&quot;</span> <span class="o">+</span> <span class="n">pod_name</span> <span class="o">+</span> <span class="s2">&quot;/metrics/&quot;</span><span class="o">+</span><span class="n">standard_pod_metrics</span><span class="p">[</span><span class="n">j</span><span class="p">])</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;metrics&quot;</span><span class="p">])</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Error to get status for: &quot;</span><span class="o">+</span><span class="n">pod_name</span><span class="p">)</span>
+                            <span class="n">status</span><span class="o">=</span><span class="p">{}</span>
+                    <span class="n">pod_status</span><span class="p">[</span><span class="n">node_name</span><span class="p">][</span><span class="n">pod_name</span><span class="p">]</span><span class="o">=</span><span class="n">status</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Error to get status pods.&quot;</span><span class="p">)</span>
+</div>
+    <span class="k">return</span> <span class="n">pod_status</span>
+
+
+
+
+
+
+
+
+
+<span class="c1"># Actions functios.</span>
+
+
+
+<div class="viewcode-block" id="actions"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.actions">[docs]</a><span class="k">def</span> <span class="nf">actions</span><span class="p">(</span><span class="n">api</span><span class="p">,</span><span class="n">namespace</span><span class="p">,</span> <span class="n">pod_status</span><span class="p">,</span> <span class="n">statefulset_labels</span><span class="p">,</span> <span class="n">max_nodes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decision making based on pods status and stateful set rules.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - api: pykube.http.HTTPClient</span>
+<span class="sd">            Http client for requests to Kubernetes Api.</span>
+<span class="sd">        - namespace: str</span>
+<span class="sd">            Project namespace.</span>
+<span class="sd">        - pod_status: dict</span>
+<span class="sd">            Dictionary with status pod information. </span>
+<span class="sd">        - statefulset_lables: dict</span>
+<span class="sd">            Dict with metrics and rules of each stateful set.</span>
+<span class="sd">        - max_nodes: int</span>
+<span class="sd">            Maximum number of allowed nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pod_status</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">pod_status</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">statefulset_name</span><span class="o">=</span><span class="n">j</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">statefulset_name</span> <span class="ow">in</span> <span class="n">statefulset_labels</span> <span class="ow">and</span> \
+                <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">statefulset_name</span><span class="p">][</span><span class="s1">&#39;overscaler&#39;</span><span class="p">]</span><span class="o">==</span><span class="kc">True</span><span class="p">:</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">pre_set</span> <span class="o">=</span> <span class="n">pykube</span><span class="o">.</span><span class="n">StatefulSet</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">api</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">statefulset_name</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;current-count&quot;</span><span class="p">])</span><span class="o">==</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;rescaling&quot;</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;false&quot;</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">statefulset_labels</span><span class="p">[</span><span class="n">statefulset_name</span><span class="p">][</span><span class="s1">&#39;rules&#39;</span><span class="p">]:</span>
+                            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">pod_status</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]:</span>
+                                <span class="n">action</span><span class="o">=</span><span class="kc">None</span>
+                                <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;greater&quot;</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">pod_status</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]):</span>
+                                        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;scale&quot;</span><span class="p">:</span>
+                                            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Is necessary to scale &quot;</span> <span class="o">+</span> <span class="n">j</span> <span class="o">+</span> <span class="s2">&quot; for rule: &quot;</span> <span class="o">+</span> <span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span>
+                                            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;scale&quot;</span>
+                                        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;reduce&quot;</span><span class="p">:</span>
+                                            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Is necessary to reduce &quot;</span> <span class="o">+</span> <span class="n">j</span> <span class="o">+</span> <span class="s2">&quot; for rule: &quot;</span> <span class="o">+</span> <span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span>
+                                            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;reduce&quot;</span>
+                                <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;lower&quot;</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">pod_status</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">&lt;=</span> <span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]):</span>
+                                        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;scale&quot;</span><span class="p">:</span>
+                                            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Is necessary to scale &quot;</span> <span class="o">+</span> <span class="n">j</span> <span class="o">+</span> <span class="s2">&quot; for rule: &quot;</span> <span class="o">+</span> <span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span>
+                                            <span class="n">action</span> <span class="o">=</span> <span class="s2">&quot;scale&quot;</span>
+                                        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;reduce&quot;</span><span class="p">:</span>
+                                            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Is necessary to reduce &quot;</span> <span class="o">+</span> <span class="n">j</span> <span class="o">+</span> <span class="s2">&quot; for rule: &quot;</span> <span class="o">+</span> <span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span>
+                                            <span class="n">action</span> <span class="o">=</span> <span class="s2">&quot;reduce&quot;</span>
+
+                                <span class="n">rescale</span><span class="p">(</span><span class="n">api</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">statefulset_name</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span><span class="n">max_nodes</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span></div>
+                    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Error to make decissions for: &quot;</span><span class="o">+</span><span class="n">statefulset_name</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="rescale"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.rescale">[docs]</a><span class="k">def</span> <span class="nf">rescale</span><span class="p">(</span><span class="n">api</span><span class="p">,</span><span class="n">namespace</span><span class="p">,</span><span class="n">statefulset_name</span><span class="p">,</span><span class="n">action</span><span class="p">,</span><span class="n">max_nodes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets a new number of replicas for a given stateful set.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - api: pykube.http.HTTPClient</span>
+<span class="sd">            Http client for requests to Kubernetes Api.</span>
+<span class="sd">        - namespace: str</span>
+<span class="sd">            Project namespace.</span>
+<span class="sd">        - statefulset_name: dict</span>
+<span class="sd">            Name of the statefulset to be rescaled.</span>
+<span class="sd">        - action: str</span>
+<span class="sd">            Action to be realized. Can be &quot;scale&quot; o &quot;reduce&quot;, one pods more or one pod less, respectively.</span>
+<span class="sd">        - max_nodes: dict</span>
+<span class="sd">            Maximum number of allowed nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pre_set</span> <span class="o">=</span> <span class="n">pykube</span><span class="o">.</span><span class="n">StatefulSet</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">api</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">statefulset_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">action</span> <span class="ow">is</span> <span class="s2">&quot;scale&quot;</span> <span class="ow">and</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">&lt;</span><span class="n">max_nodes</span> <span class="ow">and</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">(</span><span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s1">&#39;max-replicas&#39;</span><span class="p">]):</span>
+            <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">=</span><span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">+</span><span class="mi">1</span>
+            <span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;rescaling&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;true&quot;</span>
+            <span class="n">pre_set</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Rescaling &quot;</span> <span class="o">+</span> <span class="n">statefulset_name</span> <span class="o">+</span> <span class="s2">&quot;... &quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">action</span> <span class="ow">is</span> <span class="s2">&quot;reduce&quot;</span> <span class="ow">and</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">&gt;</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">&gt;</span><span class="nb">int</span><span class="p">(</span><span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s1">&#39;min-replicas&#39;</span><span class="p">]):</span>
+            <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">=</span><span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">-</span><span class="mi">1</span>
+            <span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;rescaling&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;true&quot;</span>
+            <span class="n">pre_set</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Rescaling &quot;</span> <span class="o">+</span> <span class="n">statefulset_name</span> <span class="o">+</span> <span class="s2">&quot;... &quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Rescaling not possible, there is only one replica for &quot;</span><span class="o">+</span><span class="n">statefulset_name</span><span class="p">)</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Resizing for &quot;</span><span class="o">+</span><span class="n">statefulset_name</span><span class="o">+</span><span class="s2">&quot; is failed&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span><span class="o">&gt;=</span><span class="n">max_nodes</span><span class="p">:</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Rescaling not possible, maximum nodes reached&quot;</span><span class="p">)</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Resizing for &quot;</span><span class="o">+</span><span class="n">statefulset_name</span><span class="o">+</span><span class="s2">&quot; is failed&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span> <span class="o">&gt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s1">&#39;max-replicas&#39;</span><span class="p">]):</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Rescaling not possible, maximum replicas reached for &quot;</span><span class="o">+</span><span class="n">statefulset_name</span><span class="p">)</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Resizing for &quot;</span> <span class="o">+</span> <span class="n">statefulset_name</span> <span class="o">+</span> <span class="s2">&quot; is failed&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">replicas</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pre_set</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s1">&#39;min-replicas&#39;</span><span class="p">]):</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Rescaling not possible, minimum replicas reached for &quot;</span> <span class="o">+</span> <span class="n">statefulset_name</span><span class="p">)</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Resizing for &quot;</span> <span class="o">+</span> <span class="n">statefulset_name</span> <span class="o">+</span> <span class="s2">&quot; is failed&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span><span class="p">:</span></div>
+        <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Error to rescale for: &quot;</span> <span class="o">+</span> <span class="n">statefulset_name</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="update_current_count"><a class="viewcode-back" href="../../overscaler.html#overscaler.overtools.update_current_count">[docs]</a><span class="k">def</span> <span class="nf">update_current_count</span><span class="p">(</span><span class="n">api</span><span class="p">,</span><span class="n">namespace</span><span class="p">,</span><span class="n">statefulsets_labels</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Updates the &quot;current-count&quot; label of all Stateful sets.</span>
+
+<span class="sd">    If its value is 0, this stateful set is ready to be scaled if is necessary.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        - api: pykube.http.HTTPClient</span>
+<span class="sd">            Http client for requests to Kubernetes Api.</span>
+<span class="sd">        - namespace: str</span>
+<span class="sd">            Project namespace.</span>
+<span class="sd">        - statefulset_lables: dict</span>
+<span class="sd">            Dict with metrics and rules of each stateful set.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">statefulsets_labels</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">statefulsets_labels</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;overscaler&#39;</span><span class="p">]</span><span class="o">==</span><span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pre_set</span> <span class="o">=</span> <span class="n">pykube</span><span class="o">.</span><span class="n">StatefulSet</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">api</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="n">field_selector</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;metadata.name&quot;</span><span class="p">:</span> <span class="n">i</span><span class="p">})</span>
+
+                <span class="k">if</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;status&quot;</span><span class="p">][</span><span class="s2">&quot;currentReplicas&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">pre_set</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;status&quot;</span><span class="p">][</span><span class="s2">&quot;replicas&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;labels&#39;</span><span class="p">][</span><span class="s1">&#39;rescaling&#39;</span><span class="p">]</span><span class="o">!=</span><span class="s2">&quot;false&quot;</span><span class="p">:</span>
+                    <span class="n">new_statefulset</span> <span class="o">=</span> <span class="n">pykube</span><span class="o">.</span><span class="n">StatefulSet</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">api</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">new_statefulset</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;rescaling&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;false&quot;</span>
+                    <span class="n">new_statefulset</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;current-count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_statefulset</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;autoscaler-count&quot;</span><span class="p">]</span>
+                    <span class="n">new_statefulset</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+                    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Rescaling for &quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s2">&quot; is completed&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">pre_set</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;labels&#39;</span><span class="p">][</span><span class="s1">&#39;current-count&#39;</span><span class="p">])</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">pre_set</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;labels&#39;</span><span class="p">][</span><span class="s2">&quot;rescaling&quot;</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;false&quot;</span><span class="p">:</span>
+                    <span class="n">new_statefulset</span> <span class="o">=</span> <span class="n">pykube</span><span class="o">.</span><span class="n">StatefulSet</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">api</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">new_statefulset</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;current-count&quot;</span><span class="p">]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">new_statefulset</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;current-count&quot;</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">new_statefulset</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+                    <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ACTION] Update current-count for &quot;</span> <span class="o">+</span><span class="n">i</span><span class="p">)</span>
+
+            <span class="k">except</span><span class="p">:</span></div>
+                <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; [ERROR] Error to update </span><span class="se">\&quot;</span><span class="s2">current-count</span><span class="se">\&quot;</span><span class="s2">  for: &quot;</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Overscaler alpha documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Gleam AI.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

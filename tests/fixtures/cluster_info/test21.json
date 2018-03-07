@@ -1,0 +1,24 @@
+{
+ "input":{
+    "nodePools": [
+      {
+        "autoscaling": {
+          "enabled": true,
+          "maxNodeCount": 10,
+          "minNodeCount": 5
+          }
+      }
+      ],
+    "resourceLabels": {
+      "metric-a": "cpu-usage-percent",
+      "metric-1": "memo-usage-percent"
+      }
+  },
+  "output":{
+    "autoscale":true,
+    "max_nodes": 10,
+    "min_nodes": 5,  
+    "all-metrics":false,
+    "metrics":["cpu-usage-percent"]
+  }
+}

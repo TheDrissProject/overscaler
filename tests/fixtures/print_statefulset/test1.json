@@ -1,0 +1,11 @@
+{
+    "statefulset_name":{  
+        "metrics":[],                
+        "rules": [
+      "cpu-usage-percent_greater_90_scale",
+      "memory-usage-percent_greater_90_scale",
+      "cpu-usage-percent_lower_10_reduce",
+      "memory-usage-percent_lower_10_reduce"
+    ]            
+        }
+}

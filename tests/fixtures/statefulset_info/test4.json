@@ -1,0 +1,19 @@
+{
+  "input": {
+    "items": [
+      {
+        "metadata": {
+          "labels": {
+            "app": "app"
+          }
+        }
+      }
+    ]
+  },
+  "output": [{
+    "empty":true
+  }
+  ]
+}
+
+

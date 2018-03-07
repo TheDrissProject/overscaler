@@ -1,0 +1,6 @@
+{
+    "statefulset_name":{          
+        "metrics":["memory-usage-percent","cpu-usage-percent"],     
+        "rules": []            
+        }
+}
