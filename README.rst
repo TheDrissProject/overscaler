@@ -17,7 +17,7 @@ Overscaler
 
 Stateful sets autoscaler for Google Kubernetes Engine.
 
-* Documentation: https://overscaler.readthedocs.io/en/develop.
+* Documentation: https://overscaler.readthedocs.io.
 
 
 How it works
