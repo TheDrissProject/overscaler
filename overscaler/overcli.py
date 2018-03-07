@@ -4,7 +4,7 @@ import subprocess
 import json
 import click
 
-from .overtools import (
+from overscaler.overtools import (
     start_proxy,
     get_num_nodes,
     get_cluster_labels,
@@ -15,7 +15,7 @@ from .overtools import (
     update_current_count
     )
 
-from .overprint import (
+from overscaler.overprint import (
     print_cluster_info,
     print_statefulset_info,
     print_node_status,
@@ -116,6 +116,9 @@ def start(cluster,namespace,project,zone,refresh_cluster,refresh_statefulset,ref
 
                 #Updating "current-count" label for all stateful set
                 update_current_count(api,namespace, statefulset_labels)
+
+if __name__ == "__main__":
+    main()
 
 
 
